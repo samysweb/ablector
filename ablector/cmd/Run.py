@@ -9,4 +9,7 @@ def main(args):
     
     formula = read_smtlib(args[0])
     a = AblectorSolver(get_env(), QF_UFBV)
-    print(a.is_sat(formula))
+    if a.is_sat(formula):
+        print("SAT")
+    else:
+        print("UNSAT")
