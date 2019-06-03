@@ -11,5 +11,6 @@ def main(args):
     a = AblectorSolver(get_env(), QF_UFBV)
     if a.is_sat(formula):
         print("SAT")
+        a.btor.Print_model()
     else:
         print("UNSAT")
