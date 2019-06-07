@@ -5,6 +5,8 @@ from ablector.src.nodes import MulNode, SdivNode, SremNode
 from ablector.src.UFManager import UFManager
 from ablector.src.util import Bin2Int
 
+from pprint import pprint
+
 
 class Ablector(Boolector):
     def __init__(self):
@@ -13,13 +15,14 @@ class Ablector(Boolector):
         self.Set_opt(BTOR_OPT_MODEL_GEN,2)
         self.abstractedNodes=[]
         self.ufManager = UFManager(self)
-    
+
     def Sat(self):
         for n in self.abstractedNodes:
             n.refine()
         for n in self.abstractedNodes:
             n.doAssert()
         res = super().Sat()
+
         invalid = True
         roundNum=0
         while res == self.SAT and invalid:

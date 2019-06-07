@@ -24,9 +24,13 @@ class MulNode(BinaryOperation):
         if self.refinementCount == -1:
             self.setupInitConstraints()
             self.refinementCount+=1
-        else:
-            self.addAssert(self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True)))
+        elif self.refinementCount == 0:
+            f = self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
+            self.addAssert(f)
             self.refinementCount+=1
+        else:
+            # Should not be refined again
+            raise Exception()
 
     def setupInitConstraints(self):
         self.addAssert(
