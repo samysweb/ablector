@@ -3,6 +3,7 @@ from enum import Enum, auto, unique
 @unique
 class UFSymbol(Enum):
     MUL = auto()
+    UMUL = auto()
     SDIV = auto()
     SREM = auto()
 

@@ -26,26 +26,28 @@ class Ablector(Boolector):
         invalid = True
         roundNum=0
         while res == self.SAT and invalid:
-            roundNum+=1
-            print("*** ROUND "+str(roundNum))
             changed = False
             pos = 0
-            while not changed and pos < len(self.abstractedNodes):
+            while pos < len(self.abstractedNodes):
                 toRefine = self.abstractedNodes.pop(pos)
                 if toRefine.isExact():
                     continue
                 elif toRefine.isCorrect():
-                    pos+=1
+                    # print("CORRECT WITHOUT FULL CONSTRAINTS!")
                     self.abstractedNodes.insert(pos, toRefine)
+                    pos+=1
                     continue
                 else:
                     toRefine.refine()
                     self.abstractedNodes.insert(pos, toRefine)
+                    pos+=1
                     changed = True
             if not changed:
                 invalid=False
                 break
             else:
+                roundNum+=1
+                print("*** ROUND "+str(roundNum))
                 for n in self.abstractedNodes:
                     n.doAssert()
                 res = super().Sat()           
@@ -53,6 +55,7 @@ class Ablector(Boolector):
         return res
 
     def Mul(self, a, b, normal=False):
+        # TODO (steuber): Can we keep this but still get some of the rewriting magic of Boolector (e.g. for constant inputs)?
         if normal:
             return super().Mul(a, b)
         node = MulNode(a, b, self, self.ufManager)
