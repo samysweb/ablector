@@ -208,6 +208,7 @@ class MulNode(BinaryOperation):
         )
 
     def refinement2(self):
+        #TODO (steuber): Check this!
         umul = self.ufManager.getFunction(UFSymbol.UMUL, self.a.width)
         w = self.a.width
         halfWidth = (w // 2)
@@ -282,6 +283,7 @@ class MulNode(BinaryOperation):
         # NOTE (steuber): Do we want to add udiv and bitstring suffix multiplication?
 
     def addMulBit(self):
+        # TODO (steuber): Check this!
         logger.info("Level 3 - Mulbit "+str(self.addedMulBits))
 
         if self.addedMulBits == 0:
