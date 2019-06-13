@@ -1,6 +1,10 @@
+import logging
+
 from ablector.src.nodes.binOp import BinaryOperation
 from ablector.src.util import Bin2Int, Int2Bin
 from ablector.src.UFManager import UFSymbol
+
+logger = logging.getLogger('MulNode')
 
 class SdivNode(BinaryOperation):
     MaxRefinements = 1
@@ -39,3 +43,5 @@ class SdivNode(BinaryOperation):
             )
         )
         self.addAssert(self.instance.Not(self.instance.Eq(self.b, _zero)))
+    def logMaxLevel(self):
+        logger.info("Level "+str(self.refinementCount))

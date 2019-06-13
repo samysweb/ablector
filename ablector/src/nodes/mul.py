@@ -4,7 +4,7 @@ from ablector.src.nodes.binOp import BinaryOperation
 from ablector.src.util import Bin2Int, Int2Bin
 from ablector.src.UFManager import UFSymbol
 
-logger = logger = logging.getLogger('MulNode')
+logger = logging.getLogger('MulNode')
 
 class MulNode(BinaryOperation):
     MaxRefinements = 3
@@ -40,15 +40,15 @@ class MulNode(BinaryOperation):
     
     def refine(self):
         if self.refinementCount == -1:
-            logger.info("Level 0")
+            #logger.info("Level 0")
             self.setupInitConstraints()
             self.refinementCount+=1
         elif self.refinementCount == 0:
-            logger.info("Level 1")
+            #logger.info("Level 1")
             self.refinement1()
             self.refinementCount+=1
         elif self.refinementCount == 1:
-            logger.info("Level 2")
+            #logger.info("Level 2")
             # TODO (steuber): Repair
             self.refinement2()
             self.refinementCount+=1
@@ -295,7 +295,7 @@ class MulNode(BinaryOperation):
 
     def addMulBit(self):
         # TODO (steuber): Check this!
-        logger.info("Level 3 - Mulbit "+str(self.addedMulBits))
+        #logger.info("Level 3 - Mulbit "+str(self.addedMulBits))
 
         if self.addedMulBits == 0:
             for umulFunc in self.umulResults:
@@ -323,6 +323,11 @@ class MulNode(BinaryOperation):
         self.addedMulBits+=1
         if self.addedMulBits == self.a.width:
             self.refinementCount+=1
+    def logMaxLevel(self):
+        if self.refinementCount < 2:
+            logger.info("Level "+str(self.refinementCount))
+        else:
+            logger.info("Level "+str(self.refinementCount)+" - Bit "+str(self.addedMulBits))
 
     def msdIs(self, bv, pos):
         res = bv[pos]

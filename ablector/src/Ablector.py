@@ -1,4 +1,5 @@
 import logging
+import time
 
 from pyboolector import Boolector
 from pyboolector import BTOR_OPT_INCREMENTAL, BTOR_OPT_MODEL_GEN
@@ -18,12 +19,19 @@ class Ablector(Boolector):
         self.ufManager = UFManager(self)
 
     def Sat(self):
+        refinementTime = 0
+        startTime = time.process_time()
         for n in self.abstractedNodes:
             n.refine()
         for n in self.abstractedNodes:
             n.doAssert()
+        logger.info("*** ROUND 0")
+        satTime = time.process_time()
         res = super().Sat()
-
+        refinementTime -= (time.process_time() - satTime)
+        absNodeBackup = []
+        for x in self.abstractedNodes:
+            absNodeBackup.append(x)
         invalid = True
         roundNum=0
         while res == self.SAT and invalid:
@@ -51,8 +59,15 @@ class Ablector(Boolector):
                 logger.info("*** ROUND "+str(roundNum))
                 for n in self.abstractedNodes:
                     n.doAssert()
-                res = super().Sat()           
-            
+                satTime = time.process_time()
+                res = super().Sat()
+                refinementTime -= (time.process_time() - satTime)
+        endTime = time.process_time()
+        refinementTime+=(endTime-startTime)
+        for x in absNodeBackup:
+            x.logMaxLevel()
+        logger.info("SAT TIME: "+str(endTime-startTime))
+        logger.info("REF TIME: "+str(refinementTime))
         return res
 
     def Mul(self, a, b, normal=False):
