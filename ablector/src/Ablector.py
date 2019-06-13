@@ -1,3 +1,5 @@
+import logging
+
 from pyboolector import Boolector
 from pyboolector import BTOR_OPT_INCREMENTAL, BTOR_OPT_MODEL_GEN
 
@@ -5,8 +7,7 @@ from ablector.src.nodes import MulNode, SdivNode, SremNode
 from ablector.src.UFManager import UFManager
 from ablector.src.util import Bin2Int
 
-from pprint import pprint
-
+logger = logging.getLogger('Ablector')
 
 class Ablector(Boolector):
     def __init__(self):
@@ -47,7 +48,7 @@ class Ablector(Boolector):
                 break
             else:
                 roundNum+=1
-                print("*** ROUND "+str(roundNum))
+                logger.info("*** ROUND "+str(roundNum))
                 for n in self.abstractedNodes:
                     n.doAssert()
                 res = super().Sat()           
