@@ -1,11 +1,11 @@
 
 if __name__ == "__main__":
     import sys
-    import ablector.cmd.Run
+    import ablector.src.cmd.Run
 
-    cmd = ablector.cmd.Run.helpCmd
+    cmd = ablector.src.cmd.Run.helpCmd
     if len(sys.argv) >= 1:
         # TODO (steuber): More advanced argument parsing...
         sys.argv = sys.argv[1:]
-        cmd = ablector.cmd.Run.main
+        cmd = ablector.src.cmd.Run.main
     cmd(sys.argv)
