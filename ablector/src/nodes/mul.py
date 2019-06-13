@@ -18,6 +18,7 @@ class MulNode(BinaryOperation):
             UFSymbol.MUL,
             aParam.width)
         self.addedMulBits = 0
+        self.ufManager.getFunction(UFSymbol.UMUL, 2*aParam.width)
         
     def isExact(self):
         return MulNode.MaxRefinements == self.refinementCount
@@ -210,11 +211,13 @@ class MulNode(BinaryOperation):
     def refinement2(self):
         #TODO (steuber): Check this!
         umul = self.ufManager.getFunction(UFSymbol.UMUL, self.a.width)
+        umulDouble = self.ufManager.getFunction(UFSymbol.UMUL, 2*self.a.width)
         w = self.a.width
         halfWidth = (w // 2)
-        _zero = self.instance.Const(0, w)
+        _zero = self.instance.Const(0, 2*w)
 
         self.umulResults = []
+        self.umulDoubleResults = []
         # For loop for symmetry
         self.absA = self.instance.Cond(
             self.a[w-1],
@@ -226,6 +229,8 @@ class MulNode(BinaryOperation):
             self.instance.Neg(self.b),
             self.b
         )
+        absADouble = self.instance.Uext(self.absA, w)
+        absBDouble = self.instance.Uext(self.absB, w)
         for a, b in [(self.absA, self.absB), (self.absB, self.absA)]:
             umulFunc = umul(a, b)
             mulFuncRes = self.instance.Cond(
@@ -240,46 +245,52 @@ class MulNode(BinaryOperation):
                     mulFuncRes
                 )
             )
-        for a, b in [(self.absA, self.absB), (self.absB, self.absA)]:
-            # NOTE (steuber): `self.instance.Ulte(umulFunc, upperBound)` makes ex13 unsatisfiable
-            # This might be connected to msdIs(a, pos) as this works only for positive values however a and b may currently be negative!
+            umulDoubleFunc = umulDouble(absADouble, absBDouble)
+            mulDoubleFuncRes = self.instance.Cond(
+                self.instance.Xor(self.a[w-1], self.b[w-1]),
+                self.instance.Neg(umulDoubleFunc),
+                umulDoubleFunc
+            )
+            self.umulDoubleResults.append(umulDoubleFunc)
+            self.addAssert(
+                self.instance.Eq(
+                    self.res,
+                    mulDoubleFuncRes[w-1:]
+                )
+            )
+        for a, b in [(absADouble, absBDouble), (absBDouble, absADouble)]:
             lowerBound = self.instance.Cond(
                 self.msdIs(a, 0),
                 b,
-                self.instance.Const(0, w))
-            upperBound = self.instance.Cond(
-                self.msdIs(a, 0),
-                self.instance.Cond(
-                        self.instance.Redor(b[:w-2]),
-                        self.instance.Const(-1, w), # MAX UINT
-                        self.instance.Sll(b, self.instance.Const(1, w))
-                ),
-                self.instance.Const(-1, w) # MAX UINT
-            )
+                self.instance.Const(0, 2*w))
+            upperBound = self.instance.Sll(b, self.instance.Const(1, 2*w))
             
-            for pos in range(1, halfWidth):
+            for pos in range(1, w):
                 lowerBound = self.instance.Cond(
                     self.msdIs(a, pos),
-                    self.instance.Sll(b, self.instance.Const(pos, w)),
+                    self.instance.Sll(b, self.instance.Const(pos, 2*w)),
                     lowerBound
                 )
                 upperBound = self.instance.Cond(
                     self.msdIs(a, pos),
-                    self.instance.Cond(
-                        self.instance.Redor(b[:w-pos-2]),
-                        self.instance.Const(-1, w), # MAX UINT
-                        self.instance.Sll(b, self.instance.Const(pos+1, w))
-                    ),
+                    self.instance.Sll(b, self.instance.Const(pos+1, 2*w)),
                     upperBound
                 )
             for umulFunc in self.umulResults:
                 self.addAssert(
                     self.instance.Implies(
                         self.overflowImpossible(self.a, self.b) & self.instance.Not(self.instance.Eq(a, _zero)),
-                        self.instance.Ulte(lowerBound, umulFunc) #& self.instance.Ulte(umulFunc, upperBound)
+                        self.instance.Ulte(lowerBound[w-1:], umulFunc) & self.instance.Ulte(umulFunc, upperBound[w-1:])
                     )
                 )
-            # TODO (steuber): Sign extended multiplication for overflow case!
+            for umulDoubleFunc in self.umulDoubleResults:
+                self.addAssert(
+                    self.instance.Implies(
+                        self.instance.Not(self.overflowImpossible(self.a, self.b)) & self.instance.Not(self.instance.Eq(a, _zero)),
+                        self.instance.Ulte(lowerBound, umulDoubleFunc) & self.instance.Ulte(umulDoubleFunc, upperBound)
+                    )
+                )
+            # TODO (steuber): Why not just always use double bit length if it those formulas are added anyway?
         # NOTE (steuber): Do we want to add udiv and bitstring suffix multiplication?
 
     def addMulBit(self):
