@@ -1,11 +1,11 @@
-from enum import Enum, auto, unique
+from enum import Enum, unique
 
 @unique
 class UFSymbol(Enum):
-    MUL = auto()
-    UMUL = auto()
-    SDIV = auto()
-    SREM = auto()
+    MUL = 1
+    UMUL = 2
+    SDIV = 3
+    SREM = 4
 
 class UFManager:
     def __init__(self, instanceParam):
