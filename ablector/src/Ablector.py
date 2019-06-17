@@ -12,23 +12,26 @@ logger = logging.getLogger('Ablector')
 
 class Ablector(Boolector):
     def __init__(self):
+        self.ablectorTime = 0
+        t = time.clock()
         super().__init__()
         self.Set_opt(BTOR_OPT_INCREMENTAL,1)
         self.Set_opt(BTOR_OPT_MODEL_GEN,2)
         self.abstractedNodes=[]
         self.ufManager = UFManager(self)
+        self.ablectorTime+=(time.clock()-t)
 
     def Sat(self):
         refinementTime = 0
-        startTime = time.process_time()
+        startTime = time.clock()
         for n in self.abstractedNodes:
             n.refine()
         for n in self.abstractedNodes:
             n.doAssert()
         logger.info("*** ROUND 0")
-        satTime = time.process_time()
+        satTime = time.clock()
         res = super().Sat()
-        refinementTime -= (time.process_time() - satTime)
+        refinementTime -= (time.clock() - satTime)
         absNodeBackup = []
         for x in self.abstractedNodes:
             absNodeBackup.append(x)
@@ -59,35 +62,43 @@ class Ablector(Boolector):
                 logger.info("*** ROUND "+str(roundNum))
                 for n in self.abstractedNodes:
                     n.doAssert()
-                satTime = time.process_time()
+                satTime = time.clock()
                 res = super().Sat()
-                refinementTime -= (time.process_time() - satTime)
-        endTime = time.process_time()
+                refinementTime -= (time.clock() - satTime)
+        endTime = time.clock()
+        self.ablectorTime+=(endTime-startTime)
         refinementTime+=(endTime-startTime)
         for x in absNodeBackup:
             x.logMaxLevel()
-        logger.info("SAT TIME: "+str(endTime-startTime))
-        logger.info("REF TIME: "+str(refinementTime))
+        logger.info("ABLECTOR TIME: {0:.6f}".format(self.ablectorTime))
+        logger.info("SAT TIME: {0:.6f}".format(endTime-startTime))
+        logger.info("REF TIME: {0:.6f}".format(refinementTime))
         return res
 
     def Mul(self, a, b, normal=False):
+        t = time.clock()
         # TODO (steuber): Can we keep this but still get some of the rewriting magic of Boolector (e.g. for constant inputs)?
         if normal:
             return super().Mul(a, b)
         node = MulNode(a, b, self, self.ufManager)
         self.abstractedNodes.append(node)
+        self.ablectorTime+=(time.clock()-t)
         return node.getRepr()
     
     def Sdiv(self, a, b, normal=False):
+        t = time.clock()
         if normal:
             return super().Sdiv(a, b)
         node = SdivNode(a, b, self, self.ufManager)
         self.abstractedNodes.append(node)
+        self.ablectorTime+=(time.clock()-t)
         return node.getRepr()
     
     def Srem(self, a, b, normal=False):
+        t = time.clock()
         if normal:
             return super().Srem(a, b)
         node = SremNode(a, b, self, self.ufManager)
         self.abstractedNodes.append(node)
+        self.ablectorTime+=(time.clock()-t)
         return node.getRepr()
