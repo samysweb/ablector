@@ -42,7 +42,9 @@ class MulNode(BinaryOperation):
         if self.refinementCount == -1:
             #logger.info("Level 0")
             self.setupInitConstraints()
-            self.refinementCount+=1
+            self.refinement1()
+            self.refinement2() 
+            self.refinementCount=2
         elif self.refinementCount == 0:
             #logger.info("Level 1")
             self.refinement1()
