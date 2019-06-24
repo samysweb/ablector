@@ -4,7 +4,7 @@ from ablector.src.nodes.binOp import BinaryOperation
 from ablector.src.util import Bin2Int, Int2Bin
 from ablector.src.UFManager import UFSymbol
 
-logger = logging.getLogger('MulNode')
+logger = logging.getLogger('SremNode')
 
 class SremNode(BinaryOperation):
     MaxRefinements = 1
