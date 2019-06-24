@@ -40,25 +40,19 @@ class MulNode(BinaryOperation):
     
     def refine(self):
         if self.refinementCount == -1:
-            #logger.info("Level 0")
-            self.setupInitConstraints()
             self.refinement1()
             self.refinement2() 
-            self.refinementCount=2
+            self.refinementCount+=1
         elif self.refinementCount == 0:
-            #logger.info("Level 1")
-            self.refinement1()
+            self.setupInitConstraints()
             self.refinementCount+=1
         elif self.refinementCount == 1:
-            #logger.info("Level 2")
-            # TODO (steuber): Repair
-            self.refinement2()
             self.refinementCount+=1
-        elif self.refinementCount == 2:
+        if self.refinementCount == 2:
             self.addMulBit()
             #f = self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
             #self.addAssert(f)
-        else:
+        if self.refinementCount>self.MaxRefinements:
             # Should not be refined again
             raise Exception()
 
