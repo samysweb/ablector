@@ -102,3 +102,15 @@ class Ablector(Boolector):
         self.abstractedNodes.append(node)
         self.ablectorTime+=(time.clock()-t)
         return node.getRepr()
+    
+    def Urem(self, a, b, normal=False):
+        t = time.clock()
+        if normal:
+            return super().Urem(a, b)
+        aAbs = self.Cond(a[a.width-1], self.Neg(a), a)
+        bAbs = self.Cond(b[b.width-1], self.Neg(b), b)
+        node = SremNode(aAbs, bAbs, self, self.ufManager)
+        self.abstractedNodes.append(node)
+        sremRepr = node.getRepr()
+        self.ablectorTime+=(time.clock()-t)
+        return sremRepr
