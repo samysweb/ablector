@@ -292,33 +292,19 @@ class MulNode(BinaryOperation):
     def addMulBit(self):
         # TODO (steuber): Check this!
         #logger.info("Level 3 - Mulbit "+str(self.addedMulBits))
-
-        if self.addedMulBits == 0:
-            for umulFunc in self.umulResults:
-                self.addAssert(self.instance.Iff(umulFunc[0], self.absA[0] & self.absB[0]))
-            self.carries = [] # Carries used in each column for additions
-            self.addedMulBits+=1
-            return
-
-        self.carries.append([]) # Carries of the current row
-        curSum = self.absA[self.addedMulBits] & self.absB[0]
-        for pos in range(1, self.addedMulBits+1):
-            input2 = self.absA[self.addedMulBits-pos] & self.absB[pos]
-            sum1 = self.instance.Xor(curSum, input2)
-            if pos<self.addedMulBits:
-                sum2 = self.instance.Xor(sum1, self.carries[-2][pos-1])
-                self.carries[-1].append( (self.carries[-2][pos-1] & sum1) | (curSum & input2) )
-            else:
-                sum2 = sum1
-                self.carries[-1].append( (curSum & input2) )
-            curSum = sum2
+        val = self.absA.assignment
+        msd = len(val.lstrip('0'))-1
         for umulFunc in self.umulResults:
-            self.addAssert(self.instance.Iff(umulFunc[self.addedMulBits], curSum))
-            
-
+            self.addAssert(
+                self.instance.Implies(
+                    self.instance.Ulte(2**msd, self.absA) & self.instance.Ulte(self.absA, 2**(msd+1)),
+                    self.instance.Eq(umulFunc, self.instance.Mul(self.absA, self.absB, normal=True))
+                )
+            )
         self.addedMulBits+=1
         if self.addedMulBits == self.a.width:
             self.refinementCount+=1
+
     def logMaxLevel(self):
         if self.refinementCount < 2:
             logger.info("Level "+str(self.refinementCount))
