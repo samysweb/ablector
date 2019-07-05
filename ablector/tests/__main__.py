@@ -1,4 +1,5 @@
 import io
+import logging
 from pprint import pprint
 import os
 
@@ -8,6 +9,9 @@ from pysmt.shortcuts import get_env
 from pysmt.solvers.btor import BoolectorSolver, BoolectorOptions
 
 from ablector.src.pysmt.ator import AblectorSolver
+
+logging.basicConfig(format='[%(name)s] %(levelname)s: %(message)s', level=logging.INFO)
+
 """
 IMPORTANT: Benchmark files in smtlib/ must not contain the exit command!
 """
@@ -36,6 +40,7 @@ def main():
                     for line in content:
                         if line.startswith(";ASSERT "):
                             varName = line[8:].strip()
+                            print(varName+": "+a.btor.Match_by_symbol(varName).assignment)
                             newScriptSrc+="(assert (= "+varName+" #b"+a.btor.Match_by_symbol(varName).assignment+"))\n"
                         else:
                             newScriptSrc+=line
