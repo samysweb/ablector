@@ -36,7 +36,12 @@ class MulNode(BinaryOperation):
         print(Int2Bin(Bin2Int(self.a.assignment) * Bin2Int(self.b.assignment), self.res.width))
         print(Int2Bin(Bin2Int(self.a.assignment) * Bin2Int(self.b.assignment), self.res.width) == self.res.assignment)
         """
-        return Int2Bin(Bin2Int(self.a.assignment) * Bin2Int(self.b.assignment), self.res.width) == self.res.assignment
+        req = Int2Bin(Bin2Int(self.a.assignment) * Bin2Int(self.b.assignment), self.res.width)[-self.res.width:]
+        logger.debug("a: "+str(self.a.assignment))
+        logger.debug("b: "+str(self.b.assignment))
+        logger.debug("res: "+str(self.res.assignment))
+        logger.debug("req: "+str(req))
+        return req == self.res.assignment
     
     def refine(self):
         if self.refinementCount == -1:
@@ -294,16 +299,29 @@ class MulNode(BinaryOperation):
         #logger.info("Level 3 - Mulbit "+str(self.addedMulBits))
         val = self.absA.assignment
         msd = len(val.lstrip('0'))-1
-        for umulFunc in self.umulResults:
+        logger.debug("Round: "+str(self.addedMulBits)+" - msd:"+str(msd)+" - width: "+str(self.a.width)+" - a: "+str(val)+" - b: "+str(self.b.assignment)+" - res: "+str(self.res.assignment))
+        if msd == self.absA.width-1:
             self.addAssert(
                 self.instance.Implies(
-                    self.instance.Ulte(2**msd, self.absA) & self.instance.Ulte(self.absA, 2**(msd+1)),
-                    self.instance.Eq(umulFunc, self.instance.Mul(self.absA, self.absB, normal=True))
+                    self.instance.Ulte(2**msd, self.absA),
+                    self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
+                )
+            )
+        elif msd == -1:
+            self.addAssert(
+                self.instance.Implies(
+                    self.instance.Ult(self.absA, 2**(msd+1)),
+                    self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
+                )
+            )
+        else:
+            self.addAssert(
+                self.instance.Implies(
+                    self.instance.Ulte(2**msd, self.absA) & self.instance.Ult(self.absA, 2**(msd+1)),
+                    self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
                 )
             )
         self.addedMulBits+=1
-        if self.addedMulBits == self.a.width:
-            self.refinementCount+=1
 
     def logMaxLevel(self):
         if self.refinementCount < 2:

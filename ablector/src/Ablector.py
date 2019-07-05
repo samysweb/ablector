@@ -45,7 +45,7 @@ class Ablector(Boolector):
                 if toRefine.isExact():
                     continue
                 elif toRefine.isCorrect():
-                    # print("CORRECT WITHOUT FULL CONSTRAINTS!")
+                    logger.debug("CORRECT WITHOUT FULL CONSTRAINTS!")
                     self.abstractedNodes.insert(pos, toRefine)
                     pos+=1
                     continue
