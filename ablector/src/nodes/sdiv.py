@@ -7,7 +7,7 @@ from ablector.src.UFManager import UFSymbol
 logger = logging.getLogger('SdivNode')
 
 class SdivNode(BinaryOperation):
-    MaxRefinements = 3
+    MaxRefinements = 4
 
     def __init__(self, aParam, bParam, instanceParam, ufManagerParam):
         super().__init__(
@@ -23,19 +23,36 @@ class SdivNode(BinaryOperation):
         return SdivNode.MaxRefinements == self.refinementCount
     
     def isCorrect(self):
-        return Int2Bin(Bin2Int(self.a.assignment) // Bin2Int(self.b.assignment), self.res.width) == self.res.assignment
+        a = Bin2Int(self.a.assignment)
+        a1 = a
+        b = Bin2Int(self.b.assignment)
+        b1 = b
+        if a1 < 0:
+            a1 = -a1
+        if b1 < 0:
+            b1 = -b1
+        req1 = a1 // b1
+        if (a < 0 and b>=0) or (b < 0 and a>=0):
+            req1 = -req1
+        req=Int2Bin(req1, self.res.width)[-self.res.width:]
+        logger.debug("a: "+str(self.a.assignment)+" ("+str(Bin2Int(self.a.assignment))+")")
+        logger.debug("b: "+str(self.b.assignment)+" ("+str(Bin2Int(self.b.assignment))+")")
+        logger.debug("res: "+str(self.res.assignment)+" ("+str(Bin2Int(self.res.assignment))+")")
+        logger.debug("req: "+str(req)+" ("+str(Bin2Int(req))+")")
+        return req == self.res.assignment
     
     def refine(self):
         if self.refinementCount == -1:
             self.refinement1()
             self.refinement2()
             self.refinementCount+=1
-        if self.refinementCount == 0:
+        elif self.refinementCount == 0:
             self.ufAbstraction()
             self.refinementCount+=1
         else:
             self.addLogic()
-            self.refinementCount+=1
+            if self.refinementCount!=2:
+                self.refinementCount=2
     
     def refinement1(self):
         _zero = self.instance.Const(0, self.a.width)
@@ -84,11 +101,14 @@ class SdivNode(BinaryOperation):
             self.instance.Neg(self.b),
             self.b
         )
-        udivFunc = udiv(self.absA, self.absB)
-        udivRes = self.instance.Cond(
+        self.udivRes = udiv(self.absA, self.absB)
+        udivFunc = self.instance.Cond(
             self.instance.Xor(self.a[w-1], self.b[w-1]),
-            self.instance.Neg(udivFunc),
-            udivFunc
+            self.instance.Neg(self.udivRes),
+            self.udivRes
+        )
+        self.addAssert(
+            self.instance.Eq(self.res, udivFunc)
         )
 
         upperBound = self.absA
@@ -106,7 +126,7 @@ class SdivNode(BinaryOperation):
                 lowerBound
             )
         self.addAssert(
-            self.instance.Ulte(lowerBound, udivRes) & self.instance.Ulte(udivRes, upperBound)
+            self.instance.Ulte(lowerBound, self.udivRes) & self.instance.Ult(self.udivRes, upperBound)
         )
 
     def ufAbstraction(self):
@@ -120,30 +140,28 @@ class SdivNode(BinaryOperation):
         )
     
     def addLogic(self):
-        # TODO (steuber): Check this!
-        #logger.info("Level 3 - Mulbit "+str(self.addedMulBits))
         val = self.absA.assignment
         msd = len(val.lstrip('0'))-1
-        logger.debug("Round: "+str(self.addedIntervals)+" - msd:"+str(msd)+" - width: "+str(self.a.width)+" - a: "+str(val)+" - b: "+str(self.b.assignment)+" - res: "+str(self.res.assignment))
+        logger.debug("Round: "+str(self.addedIntervals)+" - msd:"+str(msd)+" - width: "+str(self.a.width)+" - a: "+str(self.a.assignment)+" - b: "+str(self.b.assignment)+" - res: "+str(self.res.assignment))
         if msd == self.absA.width-1:
             self.addAssert(
                 self.instance.Implies(
                     self.instance.Ulte(2**msd, self.absA),
-                    self.instance.Eq(self.res, self.instance.Sdiv(self.a, self.b, normal=True))
+                    self.instance.Eq(self.udivRes, self.instance.Udiv(self.absA, self.absB))
                 )
             )
         elif msd == -1:
             self.addAssert(
                 self.instance.Implies(
-                    self.instance.Ult(self.absA, 2**(msd+1)),
-                    self.instance.Eq(self.res, self.instance.Sdiv(self.a, self.b, normal=True))
+                    self.instance.Ult(self.absA, 1),
+                    self.instance.Eq(self.udivRes, self.instance.Udiv(self.absA, self.absB))
                 )
             )
         else:
             self.addAssert(
                 self.instance.Implies(
                     self.instance.Ulte(2**msd, self.absA) & self.instance.Ult(self.absA, 2**(msd+1)),
-                    self.instance.Eq(self.res, self.instance.Sdiv(self.a, self.b, normal=True))
+                    self.instance.Eq(self.udivRes, self.instance.Udiv(self.absA, self.absB))
                 )
             )
         self.addedIntervals+=1
