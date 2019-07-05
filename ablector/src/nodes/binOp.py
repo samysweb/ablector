@@ -88,3 +88,9 @@ class BinaryOperation:
     """
     def refine(self):
         pass
+
+    def msdIs(self, bv, pos):
+        res = bv[pos]
+        if (pos+1) < (bv.width-1):
+            res = res & self.instance.Not(self.instance.Redor(bv[:pos+1]))
+        return res

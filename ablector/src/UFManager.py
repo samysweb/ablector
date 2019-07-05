@@ -5,7 +5,8 @@ class UFSymbol(Enum):
     MUL = 1
     UMUL = 2
     SDIV = 3
-    SREM = 4
+    UDIV = 4
+    SREM = 5
 
 class UFManager:
     def __init__(self, instanceParam):
