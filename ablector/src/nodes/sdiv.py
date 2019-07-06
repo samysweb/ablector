@@ -44,15 +44,17 @@ class SdivNode(BinaryOperation):
     def refine(self):
         if self.refinementCount == -1:
             self.refinement1()
-            self.refinement2()
             self.refinementCount+=1
         elif self.refinementCount == 0:
+            self.refinement2()
+            self.refinementCount += 1
+        elif self.refinementCount == 1:
             self.ufAbstraction()
             self.refinementCount+=1
         else:
             self.addLogic()
-            if self.refinementCount!=2:
-                self.refinementCount=2
+            if self.refinementCount!=3:
+                self.refinementCount=3
     
     def refinement1(self):
         _zero = self.instance.Const(0, self.a.width)
@@ -112,7 +114,7 @@ class SdivNode(BinaryOperation):
         )
 
         upperBound = self.absA
-        lowerBound = self.instance.Srl(self.absA, self.instance.Const(1, w))
+        lowerBound = self.instance.Const(0, w)
         
         for pos in range(1, w):
             upperBound = self.instance.Cond(
@@ -126,7 +128,7 @@ class SdivNode(BinaryOperation):
                 lowerBound
             )
         self.addAssert(
-            self.instance.Ulte(lowerBound, self.udivRes) & self.instance.Ult(self.udivRes, upperBound)
+            self.instance.Ult(lowerBound, self.udivRes) & self.instance.Ulte(self.udivRes, upperBound)
         )
 
     def ufAbstraction(self):

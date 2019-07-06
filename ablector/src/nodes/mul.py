@@ -7,7 +7,7 @@ from ablector.src.UFManager import UFSymbol
 logger = logging.getLogger('MulNode')
 
 class MulNode(BinaryOperation):
-    MaxRefinements = 3
+    MaxRefinements = 4
 
     def __init__(self, aParam, bParam, instanceParam, ufManagerParam):
         super().__init__(
@@ -45,15 +45,17 @@ class MulNode(BinaryOperation):
     
     def refine(self):
         if self.refinementCount == -1:
-            self.refinement1()
-            self.refinement2() 
+            self.refinement1() 
             self.refinementCount+=1
         elif self.refinementCount == 0:
-            self.setupInitConstraints()
+            self.refinement2()
             self.refinementCount+=1
         elif self.refinementCount == 1:
+            self.setupInitConstraints()
             self.refinementCount+=1
-        if self.refinementCount == 2:
+        elif self.refinementCount == 2:
+            self.refinementCount+=1
+        if self.refinementCount == 3:
             self.addMulBit()
             #f = self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
             #self.addAssert(f)
