@@ -326,7 +326,7 @@ class MulNode(BinaryOperation):
         self.addedMulBits+=1
 
     def logMaxLevel(self):
-        if self.refinementCount < 2:
+        if self.refinementCount < 3:
             logger.info("Level "+str(self.refinementCount))
         else:
             logger.info("Level "+str(self.refinementCount)+" - Bit "+str(self.addedMulBits))
