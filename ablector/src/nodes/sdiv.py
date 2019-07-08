@@ -82,10 +82,10 @@ class SdivNode(BinaryOperation):
                 self.instance.Eq(self.res, self.instance.Neg(self.a))
             )
         )
-        # a=0 => (a/b)=0
+        # -b<a<b => (a/b)=0
         self.addAssert(
             self.instance.Implies(
-                self.instance.Eq(self.a, _zero),
+                self.instance.Slt(self.a, self.b) & self.instance.Slt(self.instance.Neg(self.b), self.a),
                 self.instance.Eq(self.res, _zero)
             )
         )
