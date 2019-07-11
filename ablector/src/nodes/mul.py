@@ -19,6 +19,17 @@ class MulNode(BinaryOperation):
             aParam.width)
         self.addedMulBits = 0
         self.ufManager.getFunction(UFSymbol.UMUL, 2*aParam.width)
+        self.absA = self.instance.Cond(
+            self.a[self.a.width-1],
+            self.instance.Neg(self.a),
+            self.a
+        )
+        self.absB = self.instance.Cond(
+            self.b[self.b.width-1],
+            self.instance.Neg(self.b),
+            self.b
+        )
+        self.initStage = True
         
     def isExact(self):
         return MulNode.MaxRefinements == self.refinementCount
@@ -45,18 +56,31 @@ class MulNode(BinaryOperation):
     
     def refine(self):
         if self.refinementCount == -1:
+            if self.instance.config.isOmitted('mul', 0):
+                self.refinementCount+=1
+                return self.refine()
             self.refinement1() 
             self.refinementCount+=1
+            self.initStage = False
         elif self.refinementCount == 0:
+            if self.instance.config.isOmitted('mul', 1):
+                self.refinementCount+=1
+                return self.refine()
             self.refinement2()
             self.refinementCount+=1
+            self.initStage = False
         elif self.refinementCount == 1:
+            if self.instance.config.isOmitted('mul', 2):
+                self.refinementCount+=1
+                return self.refine()
             self.setupInitConstraints()
             self.refinementCount+=1
+            self.initStage = False
         elif self.refinementCount == 2:
             self.refinementCount+=1
         if self.refinementCount == 3:
             self.addMulBit()
+            self.initStage = False
             #f = self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
             #self.addAssert(f)
         if self.refinementCount>self.MaxRefinements:
@@ -222,16 +246,6 @@ class MulNode(BinaryOperation):
         self.umulResults = []
         self.umulDoubleResults = []
         # For loop for symmetry
-        self.absA = self.instance.Cond(
-            self.a[w-1],
-            self.instance.Neg(self.a),
-            self.a
-        )
-        self.absB = self.instance.Cond(
-            self.b[w-1],
-            self.instance.Neg(self.b),
-            self.b
-        )
         absADouble = self.instance.Uext(self.absA, w)
         absBDouble = self.instance.Uext(self.absB, w)
         for a, b in [(self.absA, self.absB), (self.absB, self.absA)]:
@@ -299,9 +313,12 @@ class MulNode(BinaryOperation):
     def addMulBit(self):
         # TODO (steuber): Check this!
         #logger.info("Level 3 - Mulbit "+str(self.addedMulBits))
-        val = self.absA.assignment
-        msd = len(val.lstrip('0'))-1
-        logger.debug("Round: "+str(self.addedMulBits)+" - msd:"+str(msd)+" - width: "+str(self.a.width)+" - a: "+str(val)+" - b: "+str(self.b.assignment)+" - res: "+str(self.res.assignment))
+        if not self.initStage:
+            val = self.absA.assignment
+            msd = len(val.lstrip('0'))-1
+            logger.debug("Round: "+str(self.addedMulBits)+" - msd:"+str(msd)+" - width: "+str(self.a.width)+" - a: "+str(val)+" - b: "+str(self.b.assignment)+" - res: "+str(self.res.assignment))
+        else:
+            msd = -1
         if msd == self.absA.width-1:
             self.addAssert(
                 self.instance.Implies(

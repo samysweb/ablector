@@ -5,11 +5,11 @@ from ablector import Ablector
 
 class AblectorSolver(BoolectorSolver):
 
-    def __init__(self, environment, logic, **options):
+    def __init__(self, environment, logic, config, **options):
         super().__init__(environment,
                             logic,
                             **options)
-        self.btor = Ablector()
+        self.btor = Ablector(configParam=config)
         self.converter = BTORConverter(environment, self.btor)
         return
 

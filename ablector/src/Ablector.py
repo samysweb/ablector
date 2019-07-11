@@ -11,10 +11,11 @@ from ablector.src.util import Bin2Int
 logger = logging.getLogger('Ablector')
 
 class Ablector(Boolector):
-    def __init__(self):
+    def __init__(self, configParam=None):
         self.ablectorTime = 0
         t = time.clock()
         super().__init__()
+        self.config = configParam
         self.Set_opt(BTOR_OPT_INCREMENTAL,1)
         self.Set_opt(BTOR_OPT_MODEL_GEN,2)
         self.abstractedNodes=[]
