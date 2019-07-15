@@ -4,7 +4,7 @@ import time
 from pyboolector import Boolector
 from pyboolector import BTOR_OPT_INCREMENTAL, BTOR_OPT_MODEL_GEN
 
-from ablector.src.nodes import MulNode, SdivNode, SremNode
+from ablector.src.nodes import MulNode, SdivNode, SremNode, UdivNode
 from ablector.src.UFManager import UFManager
 from ablector.src.util import Bin2Int
 
@@ -42,6 +42,7 @@ class Ablector(Boolector):
             changed = False
             pos = 0
             while pos < len(self.abstractedNodes):
+                logger.debug("In round "+str(roundNum))
                 toRefine = self.abstractedNodes.pop(pos)
                 if toRefine.isExact():
                     continue
@@ -51,6 +52,7 @@ class Ablector(Boolector):
                     pos+=1
                     continue
                 else:
+                    logger.debug("Refining "+str(toRefine))
                     toRefine.refine()
                     self.abstractedNodes.insert(pos, toRefine)
                     pos+=1
@@ -91,6 +93,15 @@ class Ablector(Boolector):
         if normal:
             return super().Sdiv(a, b)
         node = SdivNode(a, b, self, self.ufManager)
+        self.abstractedNodes.append(node)
+        self.ablectorTime+=(time.clock()-t)
+        return node.getRepr()
+    
+    def Udiv(self, a, b, normal=False):
+        t = time.clock()
+        if normal:
+            return super().Udiv(a, b)
+        node = UdivNode(a, b, self, self.ufManager)
         self.abstractedNodes.append(node)
         self.ablectorTime+=(time.clock()-t)
         return node.getRepr()
