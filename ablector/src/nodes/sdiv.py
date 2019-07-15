@@ -18,6 +18,28 @@ class SdivNode(BinaryOperation):
             UFSymbol.SDIV,
             aParam.width)
         self.addedIntervals=0
+
+        udiv = self.ufManager.getFunction(UFSymbol.UDIV, self.a.width)
+        w = self.a.width
+        self.absA = self.instance.Cond(
+            self.a[w-1],
+            self.instance.Neg(self.a),
+            self.a
+        )
+        self.absB = self.instance.Cond(
+            self.b[w-1],
+            self.instance.Neg(self.b),
+            self.b
+        )
+        self.udivRes = udiv(self.absA, self.absB)
+        udivFunc = self.instance.Cond(
+            self.instance.Xor(self.a[w-1], self.b[w-1]),
+            self.instance.Neg(self.udivRes),
+            self.udivRes
+        )
+        self.addAssert(
+            self.instance.Eq(self.res, udivFunc)
+        )
         
     def isExact(self):
         return SdivNode.MaxRefinements == self.refinementCount
@@ -90,29 +112,16 @@ class SdivNode(BinaryOperation):
             )
         )
 
-    def refinement2(self):
-        udiv = self.ufManager.getFunction(UFSymbol.UDIV, self.a.width)
-        w = self.a.width
-        self.absA = self.instance.Cond(
-            self.a[w-1],
-            self.instance.Neg(self.a),
-            self.a
-        )
-        self.absB = self.instance.Cond(
-            self.b[w-1],
-            self.instance.Neg(self.b),
-            self.b
-        )
-        self.udivRes = udiv(self.absA, self.absB)
-        udivFunc = self.instance.Cond(
-            self.instance.Xor(self.a[w-1], self.b[w-1]),
-            self.instance.Neg(self.udivRes),
-            self.udivRes
-        )
-        self.addAssert(
-            self.instance.Eq(self.res, udivFunc)
-        )
+        for i in range(1, self.a.width):
+            self.addAssert(
+                self.instance.Implies(
+                    self.isPow2(self.absB, i),
+                    self.instance.Eq(self.udivRes, self.instance.Srl(self.absA, self.instance.Const(i, self.absA.width)))
+                )
+            )
 
+    def refinement2(self):
+        w = self.a.width
         upperBound = self.absA
         lowerBound = self.instance.Const(0, w)
         
