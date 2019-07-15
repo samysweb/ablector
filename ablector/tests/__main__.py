@@ -2,12 +2,14 @@ import io
 import logging
 from pprint import pprint
 import os
+import sys
 
 from pysmt.logics import QF_AUFBV
 from pysmt.smtlib.parser import SmtLibParser
 from pysmt.shortcuts import get_env
 from pysmt.solvers.btor import BoolectorSolver, BoolectorOptions
 
+from ablector.src.cmd.Run import parseArgs
 from ablector.src.pysmt.ator import AblectorSolver
 
 logging.basicConfig(format='[%(name)s] %(levelname)s: %(message)s', level=logging.INFO)
@@ -16,6 +18,7 @@ logging.basicConfig(format='[%(name)s] %(levelname)s: %(message)s', level=loggin
 IMPORTANT: Benchmark files in smtlib/ must not contain the exit command!
 """
 def main():
+    config = parseArgs(sys.argv[1:])
     parser = SmtLibParser()
     folderName = os.path.join(os.path.dirname(__file__), 'smtlib')
     onlyfiles = [os.path.join(folderName, f) for f in os.listdir(folderName) if os.path.isfile(os.path.join(folderName, f)) and f.endswith(".smt2")]
@@ -28,7 +31,7 @@ def main():
                 if f.args[0] == ":status":
                     status = f.args[1]
                     assert(status == "sat" or status=="unsat")
-            a = AblectorSolver(get_env(), QF_AUFBV)
+            a = AblectorSolver(get_env(), QF_AUFBV, config)
             script.evaluate(a)
             b = BoolectorSolver(get_env(), QF_AUFBV, generate_models=True)
             
