@@ -29,7 +29,42 @@ class MulNode(BinaryOperation):
             self.instance.Neg(self.b),
             self.b
         )
+        self.absADouble = self.instance.Uext(self.absA, self.absA.width)
+        self.absBDouble = self.instance.Uext(self.absB, self.absB.width)
         self.initStage = True
+
+        umul = self.ufManager.getFunction(UFSymbol.UMUL, self.a.width)
+        umulDouble = self.ufManager.getFunction(UFSymbol.UMUL, 2*self.a.width)
+        self.umulResults = []
+        self.umulDoubleResults = []
+        # For loop for symmetry
+        for a, b in [(self.absA, self.absB), (self.absB, self.absA)]:
+            umulFunc = umul(a, b)
+            mulFuncRes = self.instance.Cond(
+                    self.instance.Xor(self.a[self.a.width-1], self.b[self.b.width-1]),
+                    self.instance.Neg(umulFunc),
+                    umulFunc
+                )
+            self.umulResults.append(umulFunc)
+            self.addAssert(
+                self.instance.Eq(
+                    self.res,
+                    mulFuncRes
+                )
+            )
+            umulDoubleFunc = umulDouble(self.absADouble, self.absBDouble)
+            mulDoubleFuncRes = self.instance.Cond(
+                self.instance.Xor(self.a[self.a.width-1], self.b[self.b.width-1]),
+                self.instance.Neg(umulDoubleFunc),
+                umulDoubleFunc
+            )
+            self.umulDoubleResults.append(umulDoubleFunc)
+            self.addAssert(
+                self.instance.Eq(
+                    self.res,
+                    mulDoubleFuncRes[self.a.width-1:]
+                )
+            )
         
     def isExact(self):
         return MulNode.MaxRefinements == self.refinementCount
@@ -235,47 +270,22 @@ class MulNode(BinaryOperation):
             )
         )
 
+        # Power 2 cases:
+        for (var1, var2) in [(self.absADouble, self.absBDouble), (self.absBDouble, self.absADouble)]:
+            for i in range(1, self.a.width):
+                for r in self.umulDoubleResults:
+                    self.addAssert(
+                        self.instance.Implies(
+                            self.isPow2(var1, i),
+                            self.instance.Eq(r, self.instance.Sll(var2, self.instance.Const(i, var2.width)))
+                        )
+                    )
+
     def refinement2(self):
         #TODO (steuber): Check this!
-        umul = self.ufManager.getFunction(UFSymbol.UMUL, self.a.width)
-        umulDouble = self.ufManager.getFunction(UFSymbol.UMUL, 2*self.a.width)
         w = self.a.width
-        halfWidth = (w // 2)
         _zero = self.instance.Const(0, 2*w)
-
-        self.umulResults = []
-        self.umulDoubleResults = []
-        # For loop for symmetry
-        absADouble = self.instance.Uext(self.absA, w)
-        absBDouble = self.instance.Uext(self.absB, w)
-        for a, b in [(self.absA, self.absB), (self.absB, self.absA)]:
-            umulFunc = umul(a, b)
-            mulFuncRes = self.instance.Cond(
-                    self.instance.Xor(self.a[w-1], self.b[w-1]),
-                    self.instance.Neg(umulFunc),
-                    umulFunc
-                )
-            self.umulResults.append(umulFunc)
-            self.addAssert(
-                self.instance.Eq(
-                    self.res,
-                    mulFuncRes
-                )
-            )
-            umulDoubleFunc = umulDouble(absADouble, absBDouble)
-            mulDoubleFuncRes = self.instance.Cond(
-                self.instance.Xor(self.a[w-1], self.b[w-1]),
-                self.instance.Neg(umulDoubleFunc),
-                umulDoubleFunc
-            )
-            self.umulDoubleResults.append(umulDoubleFunc)
-            self.addAssert(
-                self.instance.Eq(
-                    self.res,
-                    mulDoubleFuncRes[w-1:]
-                )
-            )
-        for a, b in [(absADouble, absBDouble), (absBDouble, absADouble)]:
+        for a, b in [(self.absADouble, self.absBDouble), (self.absBDouble, self.absADouble)]:
             lowerBound = self.instance.Cond(
                 self.msdIs(a, 0),
                 b,

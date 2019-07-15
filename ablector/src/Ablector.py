@@ -12,7 +12,7 @@ logger = logging.getLogger('Ablector')
 
 class Ablector(Boolector):
     def __init__(self, configParam=None):
-        self.ablectorTime = 0
+        self.ablectorTime = configParam.getTimeOffset()
         t = time.clock()
         super().__init__()
         self.config = configParam

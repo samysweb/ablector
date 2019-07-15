@@ -1,6 +1,10 @@
 import logging
 import argparse
 from pprint import pprint
+import subprocess
+import tempfile
+import time
+import os
 
 
 
@@ -34,12 +38,33 @@ def main(args):
     from pysmt.smtlib.parser import SmtLibParser
     from pysmt.shortcuts import get_env
 
-    
-
     file = args[0]
     config = parseArgs(args[1:])
 
     logging.basicConfig(format='[%(name)s] %(levelname)s: %(message)s', level=config.getLogLevel())
+
+    logger = logging.getLogger('Ablector')
+
+    t = time.clock()
+    with tempfile.NamedTemporaryFile() as tmpF:
+        with open(os.devnull, 'w') as FNULL:
+            process = subprocess.Popen(["boolector", "-ds", args[0]], stdout=tmpF, stderr=FNULL)
+            process.communicate()
+        with open(tmpF.name) as f:
+            lines = f.readlines()
+            isUnsat = False
+            isCheck = False
+            for l in lines:
+                if l.strip() == "(assert false)":
+                    isUnsat = True
+                if l.strip() == "(check-sat)":
+                    isCheck = True
+            if isUnsat and isCheck:
+                logger.info("ABLECTOR TIME: {0:.6f}".format(time.clock()-t))
+                print("UNSAT")
+                exit()
+    timeOffset = (time.clock() - t)
+    config.addTimeOffset(timeOffset)
     
     parser = SmtLibParser()
     

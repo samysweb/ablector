@@ -4,6 +4,7 @@ class AblectorConfig:
     def __init__(self):
         self.omittedStages = {}
         self.logLevel = logging.INFO
+        self.timeOffset = 0
     
     def omitStage(self, op, num):
         if op not in self.omittedStages:
@@ -18,5 +19,11 @@ class AblectorConfig:
 
     def getLogLevel(self):
         return self.logLevel
+
+    def addTimeOffset(self, offset):
+        self.timeOffset+=offset
+
+    def getTimeOffset(self):
+        return self.timeOffset
 
     

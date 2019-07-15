@@ -94,3 +94,11 @@ class BinaryOperation:
         if (pos+1) < (bv.width-1):
             res = res & self.instance.Not(self.instance.Redor(bv[:pos+1]))
         return res
+    
+    def isPow2(self, bv, powPos):
+        res = bv[powPos]
+        if (powPos+1) < (bv.width-1):
+            res = res & self.instance.Not(self.instance.Redor(bv[:powPos+1]))
+        if powPos > 1:
+            res = res & self.instance.Not(self.instance.Redor(bv[powPos-1:]))
+        return res
