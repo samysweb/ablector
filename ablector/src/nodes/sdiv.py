@@ -40,6 +40,7 @@ class SdivNode(BinaryOperation):
         self.addAssert(
             self.instance.Eq(self.res, udivFunc)
         )
+        self.initStage=True
         
     def isExact(self):
         return SdivNode.MaxRefinements == self.refinementCount
@@ -49,14 +50,20 @@ class SdivNode(BinaryOperation):
         a1 = a
         b = Bin2Int(self.b.assignment)
         b1 = b
-        if a1 < 0:
-            a1 = -a1
-        if b1 < 0:
-            b1 = -b1
-        req1 = a1 // b1
-        if (a < 0 and b>=0) or (b < 0 and a>=0):
-            req1 = -req1
-        req=Int2Bin(req1, self.res.width)[-self.res.width:]
+        if b == 0:
+            if self.a.assignment[0]=="1" or a == 0:
+                req=Int2Bin(1,self.res.width)
+            else:
+                req=self.a.assignment
+        else:
+            if a1 < 0:
+                a1 = -a1
+            if b1 < 0:
+                b1 = -b1
+            req1 = a1 // b1
+            if (a < 0 and b>=0) or (b < 0 and a>=0):
+                req1 = -req1
+            req=Int2Bin(req1, self.res.width)[-self.res.width:]
         logger.debug("a: "+str(self.a.assignment)+" ("+str(Bin2Int(self.a.assignment))+")")
         logger.debug("b: "+str(self.b.assignment)+" ("+str(Bin2Int(self.b.assignment))+")")
         logger.debug("res: "+str(self.res.assignment)+" ("+str(Bin2Int(self.res.assignment))+")")
@@ -65,16 +72,29 @@ class SdivNode(BinaryOperation):
     
     def refine(self):
         if self.refinementCount == -1:
+            if self.instance.config.isOmitted('sdiv', 0):
+                self.refinementCount+=1
+                return self.refine()
             self.refinement1()
             self.refinementCount+=1
+            self.initStage = False
         elif self.refinementCount == 0:
+            if self.instance.config.isOmitted('sdiv', 1):
+                self.refinementCount+=1
+                return self.refine()
             self.refinement2()
             self.refinementCount += 1
+            self.initStage = False
         elif self.refinementCount == 1:
+            if self.instance.config.isOmitted('sdiv', 2):
+                self.refinementCount+=1
+                return self.refine()
             self.ufAbstraction()
             self.refinementCount+=1
+            self.initStage = False
         else:
             self.addLogic()
+            self.initStage = False
             if self.refinementCount!=3:
                 self.refinementCount=3
     
@@ -82,7 +102,19 @@ class SdivNode(BinaryOperation):
         _zero = self.instance.Const(0, self.a.width)
         _one = self.instance.Const(1, self.a.width)
         _minusOne = self.instance.Const(-1, self.a.width)
-        self.addAssert(self.instance.Not(self.instance.Eq(self.b, _zero)))
+
+        # b=0 => (a/b)=a or 1 if a negative
+        self.addAssert(
+            self.instance.Implies(
+                self.instance.Eq(self.b, _zero),
+                self.instance.Eq(self.res, self.instance.Cond(
+                    self.instance.Slte(self.a, _zero),
+                    _one,
+                    self.a
+                ))
+            )
+        )
+        
         # b=1 => (a/b)=a
         self.addAssert(
             self.instance.Implies(
@@ -107,7 +139,7 @@ class SdivNode(BinaryOperation):
         # -b<a<b => (a/b)=0
         self.addAssert(
             self.instance.Implies(
-                self.instance.Slt(self.a, self.b) & self.instance.Slt(self.instance.Neg(self.b), self.a),
+                self.instance.Slt(self.a, self.b) & self.instance.Slt(self.instance.Neg(self.b), self.a) & self.instance.Not(self.instance.Eq(self.b, _zero)),
                 self.instance.Eq(self.res, _zero)
             )
         )
@@ -121,6 +153,7 @@ class SdivNode(BinaryOperation):
             )
 
     def refinement2(self):
+        _zero = self.instance.Const(0, self.a.width)
         w = self.a.width
         upperBound = self.absA
         lowerBound = self.instance.Const(0, w)
@@ -137,7 +170,12 @@ class SdivNode(BinaryOperation):
                 lowerBound
             )
         self.addAssert(
-            self.instance.Ult(lowerBound, self.udivRes) & self.instance.Ulte(self.udivRes, upperBound)
+            (self.instance.Ulte(self.udivRes, upperBound) 
+            & (
+                  self.instance.Ult(lowerBound, self.udivRes)
+                # Must add zero case due to less than (not less than equal)
+                | self.instance.Eq(self.udivRes, self.instance.Const(0, w))))
+            | self.instance.Eq(self.b, _zero)
         )
 
     def ufAbstraction(self):
@@ -151,9 +189,12 @@ class SdivNode(BinaryOperation):
         )
     
     def addLogic(self):
-        val = self.absA.assignment
-        msd = len(val.lstrip('0'))-1
-        logger.debug("Round: "+str(self.addedIntervals)+" - msd:"+str(msd)+" - width: "+str(self.a.width)+" - a: "+str(self.a.assignment)+" - b: "+str(self.b.assignment)+" - res: "+str(self.res.assignment))
+        if not self.initStage:
+            val = self.absA.assignment
+            msd = len(val.lstrip('0'))-1
+            logger.debug("Round: "+str(self.addedIntervals)+" - msd:"+str(msd)+" - width: "+str(self.a.width)+" - a: "+str(self.a.assignment)+" - b: "+str(self.b.assignment)+" - res: "+str(self.res.assignment))
+        else:
+            msd=-1
         if msd == self.absA.width-1:
             self.addAssert(
                 self.instance.Implies(

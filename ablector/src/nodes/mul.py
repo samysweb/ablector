@@ -137,6 +137,7 @@ class MulNode(BinaryOperation):
                 self.a,
                 sdivSym(self.res, self.b)
             )
+            | self.instance.Not(self.overflowImpossible(self.a, self.b))
         )
 
         self.addAssert(
@@ -145,6 +146,7 @@ class MulNode(BinaryOperation):
                 self.b,
                 sdivSym(self.res, self.a)
             )
+            | self.instance.Not(self.overflowImpossible(self.a, self.b))
         )
 
         for w in self.ufManager.getBitWidths(self.a.width):
@@ -168,6 +170,7 @@ class MulNode(BinaryOperation):
                     self.a[w-1:0],
                     self.ufManager.getFunction(UFSymbol.SDIV, w)(self.res[w-1:0], self.b[w-1:0])
                 )
+                | self.instance.Not(self.overflowImpossible(self.a[w-1:0], self.b[w-1:0]))
             )
             self.addAssert(
                 self.instance.Eq(self.a[w-1:0], self.instance.Const(0, w))
@@ -175,6 +178,7 @@ class MulNode(BinaryOperation):
                     self.b[w-1:0],
                     self.ufManager.getFunction(UFSymbol.SDIV, w)(self.res[w-1:0], self.a[w-1:0])
                 )
+                | self.instance.Not(self.overflowImpossible(self.a[w-1:0], self.b[w-1:0]))
             )
         
 
@@ -362,23 +366,27 @@ class MulNode(BinaryOperation):
         w = bv1.width
         # All positive case:
         # -> There must be at least w leading zeros
-        disjunction = self.instance.Not(self.instance.Redor(bv1))
+        disjunction = self.instance.Not(self.instance.Redor(bv1)) | self.instance.Not(self.instance.Redor(bv2))
         for i in range(1, w):
-            disjunction = disjunction | ( self.instance.Not(self.instance.Redor(bv1[:i])) & self.instance.Not(self.instance.Redor(bv2[:w-i])) )
+            disjunction = disjunction | ( self.instance.Not(self.instance.Redor(bv1[:i])) & self.instance.Not(self.instance.Redor(bv2[:w-i-1])) )
         # bv1 negative
         # -> There must be at least w+1 leading zeros (positive)/ones (negative)
         
-        for i in range(1, w):
-            disjunction = disjunction | ( self.instance.Redand(bv1[:i]) & self.instance.Not(self.instance.Redor(bv2[:w-i-1])) )
+        for i in range(1, w-1):
+            disjunction = disjunction | ( self.instance.Redand(bv1[:i]) & self.instance.Not(self.instance.Redor(bv2[:w-i-2])) )
+        # for i in range(1,w):
+        #     disjunction = disjunction | (
+        #         bv1[0]
+        #     )
 
         # bv2 negative
         # -> There must be at least w+1 leading zeros (positive)/ones (negative)
-        for i in range(1, w):
-            disjunction = disjunction | ( self.instance.Redand(bv2[:i]) & self.instance.Not(self.instance.Redor(bv1[:w-i-1])) )
+        for i in range(1, w-1):
+            disjunction = disjunction | ( self.instance.Redand(bv2[:i]) & self.instance.Not(self.instance.Redor(bv1[:w-i-2])) )
 
         # b1 and bv2 negative
         # -> There must be at least w+2 leading ones (as both is negative)
-        for i in range(1, w-1):
-            disjunction = disjunction | ( self.instance.Redand(bv1[:i]) & self.instance.Redand(bv2[:w-i-2]) )
+        for i in range(1, w-2):
+            disjunction = disjunction | ( self.instance.Redand(bv1[:i]) & self.instance.Redand(bv2[:w-i-3]) )
 
         return disjunction

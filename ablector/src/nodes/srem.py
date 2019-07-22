@@ -22,7 +22,12 @@ class SremNode(BinaryOperation):
         return SremNode.MaxRefinements == self.refinementCount
     
     def isCorrect(self):
-        return Int2Bin(Bin2Int(self.a.assignment) % Bin2Int(self.b.assignment), self.res.width) == self.res.assignment
+        a = Bin2Int(self.a.assignment)
+        b = Bin2Int(self.b.assignment)
+        if b == 0:
+            return self.a.assignment == self.res.assignment
+        else:
+            return Int2Bin(a % b, self.res.width) == self.res.assignment
     
     def refine(self):
         if self.refinementCount == -1:
@@ -42,6 +47,12 @@ class SremNode(BinaryOperation):
                 mulResult + self.res
             )
         )
-        self.addAssert(self.instance.Not(self.instance.Eq(self.b, _zero)))
+        # b=0 => (a%b)=a
+        self.addAssert(
+            self.instance.Implies(
+                self.instance.Eq(self.b, _zero),
+                self.instance.Eq(self.res, self.a)
+            )
+        )
     def logMaxLevel(self):
         logger.info("Level "+str(self.refinementCount))

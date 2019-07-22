@@ -99,6 +99,6 @@ class BinaryOperation:
         res = bv[powPos]
         if (powPos+1) < (bv.width-1):
             res = res & self.instance.Not(self.instance.Redor(bv[:powPos+1]))
-        if powPos > 1:
+        if powPos > 0:
             res = res & self.instance.Not(self.instance.Redor(bv[powPos-1:]))
         return res
