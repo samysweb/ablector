@@ -18,7 +18,10 @@ class MulNode(BinaryOperation):
             UFSymbol.MUL,
             aParam.width)
         self.addedMulBits = 0
-        self.ufManager.getFunction(UFSymbol.UMUL, 2*aParam.width)
+        self.mulDoubleFun = self.ufManager.getFunction(UFSymbol.MUL, self.a.width*2)
+        self.sdivDoubleFun = self.ufManager.getFunction(UFSymbol.SDIV, self.a.width*2)
+        self.umulFun = self.ufManager.getFunction(UFSymbol.UMUL, self.a.width)
+        self.umulDoubleFun = self.ufManager.getFunction(UFSymbol.UMUL, self.a.width*2)
         self.absA = self.instance.Cond(
             self.a[self.a.width-1],
             self.instance.Neg(self.a),
@@ -31,15 +34,15 @@ class MulNode(BinaryOperation):
         )
         self.absADouble = self.instance.Uext(self.absA, self.absA.width)
         self.absBDouble = self.instance.Uext(self.absB, self.absB.width)
+        self.aDouble = self.instance.Sext(self.a, self.a.width)
+        self.bDouble = self.instance.Sext(self.b, self.b.width)
         self.initStage = True
 
-        umul = self.ufManager.getFunction(UFSymbol.UMUL, self.a.width)
-        umulDouble = self.ufManager.getFunction(UFSymbol.UMUL, 2*self.a.width)
         self.umulResults = []
         self.umulDoubleResults = []
         # For loop for symmetry
         for a, b in [(self.absA, self.absB), (self.absB, self.absA)]:
-            umulFunc = umul(a, b)
+            umulFunc = self.umulFun(a, b)
             mulFuncRes = self.instance.Cond(
                     self.instance.Xor(self.a[self.a.width-1], self.b[self.b.width-1]),
                     self.instance.Neg(umulFunc),
@@ -52,7 +55,7 @@ class MulNode(BinaryOperation):
                     mulFuncRes
                 )
             )
-            umulDoubleFunc = umulDouble(self.absADouble, self.absBDouble)
+            umulDoubleFunc = self.umulDoubleFun(self.absADouble, self.absBDouble)
             mulDoubleFuncRes = self.instance.Cond(
                 self.instance.Xor(self.a[self.a.width-1], self.b[self.b.width-1]),
                 self.instance.Neg(umulDoubleFunc),
@@ -124,61 +127,64 @@ class MulNode(BinaryOperation):
 
     def setupInitConstraints(self):
         _zero = self.instance.Const(0, self.a.width)
+        self.resDouble = self.mulDoubleFun(self.aDouble, self.bDouble)
         self.addAssert(
             self.instance.Eq(
                 self.res,
-                self.ufManager.getFunction(UFSymbol.MUL, self.a.width)(self.b, self.a)
+                self.resDouble[self.a.width-1:]
             )
         )
-        sdivSym = self.ufManager.getFunction(UFSymbol.SDIV, self.a.width)
+        self.addAssert(
+            self.instance.Eq(
+                self.resDouble,
+                self.mulDoubleFun(self.bDouble, self.aDouble)
+            )
+        )
+
         self.addAssert(
             self.instance.Eq(self.b, _zero)
             | self.instance.Eq(
-                self.a,
-                sdivSym(self.res, self.b)
+                self.aDouble,
+                self.sdivDoubleFun(self.resDouble, self.bDouble)
             )
-            | self.instance.Not(self.overflowImpossible(self.a, self.b))
         )
 
         self.addAssert(
             self.instance.Eq(self.a, _zero)
             | self.instance.Eq(
-                self.b,
-                sdivSym(self.res, self.a)
+                self.bDouble,
+                self.sdivDoubleFun(self.resDouble, self.aDouble)
             )
-            | self.instance.Not(self.overflowImpossible(self.a, self.b))
         )
 
-        for w in self.ufManager.getBitWidths(self.a.width):
+        for w in self.ufManager.getBitWidths(self.a.width*2):
             self.addAssert(
                 self.instance.Eq(
-                    self.res[w-1:0],
-                    self.ufManager.getFunction(UFSymbol.MUL, w)(self.a[w-1:0], self.b[w-1:0])
+                    self.resDouble[w-1:0],
+                    self.ufManager.getFunction(UFSymbol.MUL, w)(self.aDouble[w-1:0], self.bDouble[w-1:0])
                 )
             )
             self.addAssert(
                 self.instance.Eq(
-                    self.res[w-1:0],
-                    self.ufManager.getFunction(UFSymbol.MUL, w)(self.b[w-1:0], self.a[w-1:0])
+                    self.resDouble[w-1:0],
+                    self.ufManager.getFunction(UFSymbol.MUL, w)(self.bDouble[w-1:0], self.aDouble[w-1:0])
                 )
             )
         
-        for w in self.ufManager.getBitWidths(self.a.width):
+        for w in self.ufManager.getBitWidths(self.a.width*2):
             self.addAssert(
                 self.instance.Eq(self.b[w-1:0], self.instance.Const(0, w))
                 | self.instance.Eq(
-                    self.a[w-1:0],
-                    self.ufManager.getFunction(UFSymbol.SDIV, w)(self.res[w-1:0], self.b[w-1:0])
+                    self.aDouble[w-1:0],
+                    self.ufManager.getFunction(UFSymbol.SDIV, w)(self.resDouble[w-1:0], self.bDouble[w-1:0])
                 )
-                | self.instance.Not(self.overflowImpossible(self.a[w-1:0], self.b[w-1:0]))
             )
             self.addAssert(
                 self.instance.Eq(self.a[w-1:0], self.instance.Const(0, w))
                 | self.instance.Eq(
-                    self.b[w-1:0],
-                    self.ufManager.getFunction(UFSymbol.SDIV, w)(self.res[w-1:0], self.a[w-1:0])
+                    self.bDouble[w-1:0],
+                    self.ufManager.getFunction(UFSymbol.SDIV, w)(self.resDouble[w-1:0], self.aDouble[w-1:0])
                 )
-                | self.instance.Not(self.overflowImpossible(self.a[w-1:0], self.b[w-1:0]))
             )
         
 

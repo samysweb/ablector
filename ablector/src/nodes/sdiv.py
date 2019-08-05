@@ -19,7 +19,15 @@ class SdivNode(BinaryOperation):
             aParam.width)
         self.addedIntervals=0
 
-        udiv = self.ufManager.getFunction(UFSymbol.UDIV, self.a.width)
+        self.udivFun = self.ufManager.getFunction(UFSymbol.UDIV, self.a.width)
+
+
+        self.sdivDoubleFun = self.ufManager.getFunction(UFSymbol.SDIV, self.a.width*2)
+        self.sremDoubleFun = self.ufManager.getFunction(UFSymbol.SREM, self.a.width*2)
+        self.mulDoubleFun = self.ufManager.getFunction(UFSymbol.MUL, self.a.width*2)
+        self.aDouble = self.instance.Sext(self.a, self.a.width)
+        self.bDouble = self.instance.Sext(self.b, self.b.width)
+
         w = self.a.width
         self.absA = self.instance.Cond(
             self.a[w-1],
@@ -31,7 +39,7 @@ class SdivNode(BinaryOperation):
             self.instance.Neg(self.b),
             self.b
         )
-        self.udivRes = udiv(self.absA, self.absB)
+        self.udivRes = self.udivFun(self.absA, self.absB)
         udivFunc = self.instance.Cond(
             self.instance.Xor(self.a[w-1], self.b[w-1]),
             self.instance.Neg(self.udivRes),
@@ -179,11 +187,18 @@ class SdivNode(BinaryOperation):
         )
 
     def ufAbstraction(self):
-        remResult = self.ufManager.getFunction(UFSymbol.SREM, self.a.width)(self.a, self.b)
-        mulResult = self.ufManager.getFunction(UFSymbol.MUL, self.a.width)(self.b, self.res)
+        self.resDouble = self.sdivDoubleFun(self.aDouble, self.bDouble)
         self.addAssert(
             self.instance.Eq(
-                self.a,
+                self.res,
+                self.resDouble[self.a.width-1]
+            )
+        )
+        remResult = self.sremDoubleFun(self.aDouble, self.bDouble)
+        mulResult = self.mulDoubleFun(self.bDouble, self.resDouble)
+        self.addAssert(
+            self.instance.Eq(
+                self.aDouble,
                 mulResult + remResult
             )
         )

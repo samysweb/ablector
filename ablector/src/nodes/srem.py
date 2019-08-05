@@ -17,6 +17,12 @@ class SremNode(BinaryOperation):
             ufManagerParam,
             UFSymbol.SREM,
             aParam.width)
+        self.aDouble = self.instance.Sext(self.a, self.a.width)
+        self.bDouble = self.instance.Sext(self.b, self.b.width)
+
+        self.sremDoubleFun = self.ufManager.getFunction(UFSymbol.SREM, self.a.width*2)
+        self.sdivDoubleFun = self.ufManager.getFunction(UFSymbol.SDIV, self.a.width*2)
+        self.mulDoubleFun = self.ufManager.getFunction(UFSymbol.MUL, self.a.width*2)
         
     def isExact(self):
         return SremNode.MaxRefinements == self.refinementCount
@@ -38,13 +44,20 @@ class SremNode(BinaryOperation):
             self.refinementCount+=1
 
     def setupInitConstraints(self):
-        _zero = self.instance.Const(0, self.a.width)
-        divResult = self.ufManager.getFunction(UFSymbol.SDIV, self.a.width)(self.a, self.b)
-        mulResult = self.ufManager.getFunction(UFSymbol.MUL, self.a.width)(self.b, divResult)
+        self.resDouble = self.sremDoubleFun(self.aDouble, self.bDouble)
         self.addAssert(
             self.instance.Eq(
-                self.a,
-                mulResult + self.res
+                self.res,
+                self.resDouble[self.a.width-1:]
+            )
+        )
+        _zero = self.instance.Const(0, self.a.width)
+        divResult = self.sdivDoubleFun(self.aDouble, self.bDouble)
+        mulResult = self.mulDoubleFun(self.bDouble, divResult)
+        self.addAssert(
+            self.instance.Eq(
+                self.aDouble,
+                mulResult + self.resDouble
             )
         )
         # b=0 => (a%b)=a
