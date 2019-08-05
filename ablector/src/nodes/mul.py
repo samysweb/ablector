@@ -18,8 +18,8 @@ class MulNode(BinaryOperation):
             UFSymbol.MUL,
             aParam.width)
         self.addedMulBits = 0
-        self.mulDoubleFun = self.ufManager.getFunction(UFSymbol.MUL, self.a.width*2)
-        self.sdivDoubleFun = self.ufManager.getFunction(UFSymbol.SDIV, self.a.width*2)
+        self.mulDoubleFun = self.ufManager.getFunction(UFSymbol.MUL, self.a.width*2, isGlobal=True)
+        self.sdivDoubleFun = self.ufManager.getFunction(UFSymbol.SDIV, self.a.width*2, isGlobal=True)
         self.umulFun = self.ufManager.getFunction(UFSymbol.UMUL, self.a.width)
         self.umulDoubleFun = self.ufManager.getFunction(UFSymbol.UMUL, self.a.width*2)
         self.absA = self.instance.Cond(
@@ -161,13 +161,13 @@ class MulNode(BinaryOperation):
             self.addAssert(
                 self.instance.Eq(
                     self.resDouble[w-1:0],
-                    self.ufManager.getFunction(UFSymbol.MUL, w)(self.aDouble[w-1:0], self.bDouble[w-1:0])
+                    self.ufManager.getFunction(UFSymbol.MUL, w, isGlobal=True)(self.aDouble[w-1:0], self.bDouble[w-1:0])
                 )
             )
             self.addAssert(
                 self.instance.Eq(
                     self.resDouble[w-1:0],
-                    self.ufManager.getFunction(UFSymbol.MUL, w)(self.bDouble[w-1:0], self.aDouble[w-1:0])
+                    self.ufManager.getFunction(UFSymbol.MUL, w, isGlobal=True)(self.bDouble[w-1:0], self.aDouble[w-1:0])
                 )
             )
         
@@ -176,14 +176,14 @@ class MulNode(BinaryOperation):
                 self.instance.Eq(self.b[w-1:0], self.instance.Const(0, w))
                 | self.instance.Eq(
                     self.aDouble[w-1:0],
-                    self.ufManager.getFunction(UFSymbol.SDIV, w)(self.resDouble[w-1:0], self.bDouble[w-1:0])
+                    self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(self.resDouble[w-1:0], self.bDouble[w-1:0])
                 )
             )
             self.addAssert(
                 self.instance.Eq(self.a[w-1:0], self.instance.Const(0, w))
                 | self.instance.Eq(
                     self.bDouble[w-1:0],
-                    self.ufManager.getFunction(UFSymbol.SDIV, w)(self.resDouble[w-1:0], self.aDouble[w-1:0])
+                    self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(self.resDouble[w-1:0], self.aDouble[w-1:0])
                 )
             )
         

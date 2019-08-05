@@ -19,7 +19,7 @@ class Ablector(Boolector):
         self.Set_opt(BTOR_OPT_INCREMENTAL,1)
         self.Set_opt(BTOR_OPT_MODEL_GEN,2)
         self.abstractedNodes=[]
-        self.ufManager = UFManager(self)
+        self.ufManager = UFManager(self, self.config)
         self.ablectorTime+=(time.clock()-t)
 
     def Sat(self):

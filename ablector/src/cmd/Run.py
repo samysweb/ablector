@@ -20,6 +20,7 @@ def parseArgs(args):
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('-d', dest="debug", action="store_true")
     parser.add_argument('--omit', dest='omitted', action='append', type=str, nargs=1)
+    parser.add_argument('--ufReuse', dest="ufReuseFactor", action="store", type=int)
 
     args = parser.parse_args(args)
     if args.debug:
@@ -29,6 +30,9 @@ def parseArgs(args):
         for curOmitted in args.omitted:
             parts = curOmitted[0].strip().split(":")
             result.omitStage(parts[0], int(parts[1]))
+
+    if args.ufReuseFactor:
+        result.setUfReuseFactor(args.ufReuseFactor)
 
     return result
 

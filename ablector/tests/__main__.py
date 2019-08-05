@@ -12,13 +12,13 @@ from pysmt.solvers.btor import BoolectorSolver, BoolectorOptions
 from ablector.src.cmd.Run import parseArgs
 from ablector.src.pysmt.ator import AblectorSolver
 
-logging.basicConfig(format='[%(name)s] %(levelname)s: %(message)s', level=logging.INFO)
 
 """
 IMPORTANT: Benchmark files in smtlib/ must not contain the exit command!
 """
 def main():
     config = parseArgs(sys.argv[1:])
+    logging.basicConfig(format='[%(name)s] %(levelname)s: %(message)s', level=config.getLogLevel())
     parser = SmtLibParser()
     folderName = os.path.join(os.path.dirname(__file__), 'smtlib')
     onlyfiles = [os.path.join(folderName, f) for f in os.listdir(folderName) if os.path.isfile(os.path.join(folderName, f)) and f.endswith(".smt2")]

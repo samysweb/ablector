@@ -20,9 +20,9 @@ class SremNode(BinaryOperation):
         self.aDouble = self.instance.Sext(self.a, self.a.width)
         self.bDouble = self.instance.Sext(self.b, self.b.width)
 
-        self.sremDoubleFun = self.ufManager.getFunction(UFSymbol.SREM, self.a.width*2)
-        self.sdivDoubleFun = self.ufManager.getFunction(UFSymbol.SDIV, self.a.width*2)
-        self.mulDoubleFun = self.ufManager.getFunction(UFSymbol.MUL, self.a.width*2)
+        self.sremDoubleFun = self.ufManager.getFunction(UFSymbol.SREM, self.a.width*2, isGlobal=True)
+        self.sdivDoubleFun = self.ufManager.getFunction(UFSymbol.SDIV, self.a.width*2, isGlobal=True)
+        self.mulDoubleFun = self.ufManager.getFunction(UFSymbol.MUL, self.a.width*2, isGlobal=True)
         
     def isExact(self):
         return SremNode.MaxRefinements == self.refinementCount

@@ -5,6 +5,10 @@ class AblectorConfig:
         self.omittedStages = {}
         self.logLevel = logging.INFO
         self.timeOffset = 0
+        self.ufReuseFactor=0
+
+    def setUfReuseFactor(self, factor):
+        self.ufReuseFactor = factor
     
     def omitStage(self, op, num):
         if op not in self.omittedStages:
