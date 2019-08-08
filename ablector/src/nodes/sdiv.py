@@ -191,7 +191,7 @@ class SdivNode(BinaryOperation):
         self.addAssert(
             self.instance.Eq(
                 self.res,
-                self.resDouble[self.a.width-1]
+                self.resDouble[self.a.width-1:]
             )
         )
         remResult = self.sremDoubleFun(self.aDouble, self.bDouble)

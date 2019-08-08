@@ -173,14 +173,14 @@ class MulNode(BinaryOperation):
         
         for w in self.ufManager.getBitWidths(self.a.width*2):
             self.addAssert(
-                self.instance.Eq(self.b[w-1:0], self.instance.Const(0, w))
+                self.instance.Eq(self.bDouble[w-1:0], self.instance.Const(0, w))
                 | self.instance.Eq(
                     self.aDouble[w-1:0],
                     self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(self.resDouble[w-1:0], self.bDouble[w-1:0])
                 )
             )
             self.addAssert(
-                self.instance.Eq(self.a[w-1:0], self.instance.Const(0, w))
+                self.instance.Eq(self.aDouble[w-1:0], self.instance.Const(0, w))
                 | self.instance.Eq(
                     self.bDouble[w-1:0],
                     self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(self.resDouble[w-1:0], self.aDouble[w-1:0])
