@@ -27,7 +27,7 @@ class UFManager:
         else:
             return [w for s in self.globalFunctions for w in self.globalFunctions[s] if w < maxWidth]
 
-    def getFunction(self, symbol, width, isGlobal=True):
+    def getFunction(self, symbol, width, isGlobal=False):
         if symbol not in self.functions:
             self.functions[symbol]={}
             self.functionsCounters[symbol]={}
@@ -44,7 +44,9 @@ class UFManager:
         if isGlobal or self.config.ufReuseFactor==0:
             return self.globalFunctions[symbol][width]
         else:
-            if self.functionsCounters[symbol][width] > self.config.ufReuseFactor:
+            if self.functionsCounters[symbol][width] >= self.config.ufReuseFactor:
+                bvSort = self.instance.BitVecSort(width)
+                logger.debug("Building new uf because reuse limit was reached")
                 self.functions[symbol][width] = self.instance.UF(
                 self.instance.FunSort([bvSort, bvSort], bvSort),
                 None)
