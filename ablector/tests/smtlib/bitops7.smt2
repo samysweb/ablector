@@ -10,6 +10,8 @@ format by Clark Barrett using CVC3.
 (set-info :status sat)
 (declare-fun x () (_ BitVec 3))
 (declare-fun y () (_ BitVec 2))
+;ASSERT x
+;ASSERT y
 (assert (not (=> (= ((_ extract 2 2) x) (_ bv0 1)) (= ((_ extract 5 5) (bvadd (bvmul (_ bv10 6) (concat (_ bv0 3) x)) (concat (_ bv0 4) y))) (_ bv0 1)))))
 (check-sat)
 ;(exit)

@@ -8,6 +8,7 @@ from pysmt.logics import QF_AUFBV
 from pysmt.smtlib.parser import SmtLibParser
 from pysmt.shortcuts import get_env
 from pysmt.solvers.btor import BoolectorSolver, BoolectorOptions
+from pysmt.environment import reset_env
 
 from ablector.src.cmd.Run import parseArgs
 from ablector.src.pysmt.ator import AblectorSolver
@@ -19,12 +20,14 @@ IMPORTANT: Benchmark files in smtlib/ must not contain the exit command!
 def main():
     config = parseArgs(sys.argv[1:])
     logging.basicConfig(format='[%(name)s] %(levelname)s: %(message)s', level=config.getLogLevel())
-    parser = SmtLibParser()
     folderName = os.path.join(os.path.dirname(__file__), 'smtlib')
     onlyfiles = [os.path.join(folderName, f) for f in os.listdir(folderName) if os.path.isfile(os.path.join(folderName, f)) and f.endswith(".smt2")]
     for filePath in onlyfiles:
         with open(filePath, "r") as f:
             print(filePath)
+            reset_env()
+            parser = SmtLibParser()
+            parser._reset()
             script = parser.get_script(f)
             status = "unsat"
             for f in script.filter_by_command_name("set-info"):
@@ -47,6 +50,7 @@ def main():
                             newScriptSrc+="(assert (= "+varName+" #b"+a.btor.Match_by_symbol(varName).assignment+"))\n"
                         else:
                             newScriptSrc+=line
+                    parser._reset()
                     scriptWithValues = parser.get_script(io.StringIO(newScriptSrc))
                     scriptWithValues.evaluate(b)
                     assert(b.last_result)
