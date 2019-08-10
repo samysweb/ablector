@@ -34,9 +34,14 @@ class UFManager:
             self.globalFunctions[symbol]={}
         if width not in self.globalFunctions[symbol]:
             bvSort = self.instance.BitVecSort(width)
-            self.globalFunctions[symbol][width] = self.instance.UF(
-                self.instance.FunSort([bvSort, bvSort], bvSort),
-                None)
+            if logger.isEnabledFor(logging.DEBUG):
+                self.globalFunctions[symbol][width] = self.instance.UF(
+                    self.instance.FunSort([bvSort, bvSort], bvSort),
+                    str(symbol)+"-"+str(width))
+            else:
+                self.globalFunctions[symbol][width] = self.instance.UF(
+                    self.instance.FunSort([bvSort, bvSort], bvSort),
+                    None)
             self.functions[symbol][width] = self.instance.UF(
                 self.instance.FunSort([bvSort, bvSort], bvSort),
                 None)

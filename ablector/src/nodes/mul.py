@@ -172,20 +172,21 @@ class MulNode(BinaryOperation):
             )
         
         for w in self.ufManager.getBitWidths(self.a.width*2):
+            #logger.info(w)
             wIntern = w//2
             extend = w-(w//2)
             self.addAssert(
                 self.instance.Eq(self.bDouble[wIntern-1:0], self.instance.Const(0, wIntern))
                 | self.instance.Eq(
                     self.instance.Sext(self.aDouble[wIntern-1:0],extend),
-                    self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(self.instance.Sext(self.resDouble[wIntern-1:0],extend), self.instance.Sext(self.bDouble[wIntern-1:0],extend))
+                    self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(self.resDouble[w-1:0], self.instance.Sext(self.bDouble[wIntern-1:0],extend))
                 )
             )
             self.addAssert(
                 self.instance.Eq(self.aDouble[wIntern-1:0], self.instance.Const(0, wIntern))
                 | self.instance.Eq(
                     self.instance.Sext(self.bDouble[wIntern-1:0],extend),
-                    self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(self.instance.Sext(self.resDouble[wIntern-1:0],extend), self.instance.Sext(self.aDouble[wIntern-1:0],extend))
+                    self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(self.resDouble[w-1:0], self.instance.Sext(self.aDouble[wIntern-1:0],extend))
                 )
             )
         
