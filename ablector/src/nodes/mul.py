@@ -40,6 +40,7 @@ class MulNode(BinaryOperation):
 
         self.umulResults = []
         self.umulDoubleResults = []
+
         # For loop for symmetry
         for a, b in [(self.absA, self.absB), (self.absB, self.absA)]:
             umulFunc = self.umulFun(a, b)
@@ -175,18 +176,56 @@ class MulNode(BinaryOperation):
             #logger.info(w)
             wIntern = w//2
             extend = w-(w//2)
+            # self.addAssert(
+            #     self.instance.Eq(self.bDouble[wIntern-1:0], self.instance.Const(0, wIntern))
+            #     | self.instance.Eq(
+            #         self.instance.Sext(self.aDouble[wIntern-1:0],extend),
+            #         self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(self.resDouble[w-1:0], self.instance.Sext(self.bDouble[wIntern-1:0],extend))
+            #     )
+            # )
+            # self.addAssert(
+            #     self.instance.Eq(self.aDouble[wIntern-1:0], self.instance.Const(0, wIntern))
+            #     | self.instance.Eq(
+            #         self.instance.Sext(self.bDouble[wIntern-1:0],extend),
+            #         self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(self.resDouble[w-1:0], self.instance.Sext(self.aDouble[wIntern-1:0],extend))
+            #     )
+            # )
+            self.addAssert(
+                self.instance.Eq(
+                    self.ufManager.getFunction(UFSymbol.MUL, w, isGlobal=True)(
+                        self.instance.Sext(self.aDouble[wIntern-1:0],extend),
+                        self.instance.Sext(self.bDouble[wIntern-1:0],extend),
+                    ),
+                    self.ufManager.getFunction(UFSymbol.MUL, w, isGlobal=True)(
+                        self.instance.Sext(self.bDouble[wIntern-1:0],extend),
+                        self.instance.Sext(self.aDouble[wIntern-1:0],extend),
+                    )
+                )
+            )
             self.addAssert(
                 self.instance.Eq(self.bDouble[wIntern-1:0], self.instance.Const(0, wIntern))
                 | self.instance.Eq(
                     self.instance.Sext(self.aDouble[wIntern-1:0],extend),
-                    self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(self.resDouble[w-1:0], self.instance.Sext(self.bDouble[wIntern-1:0],extend))
+                    self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(
+                        self.ufManager.getFunction(UFSymbol.MUL, w, isGlobal=True)(
+                            self.instance.Sext(self.aDouble[wIntern-1:0],extend),
+                            self.instance.Sext(self.bDouble[wIntern-1:0],extend),
+                        ),
+                        self.instance.Sext(self.bDouble[wIntern-1:0],extend)
+                    )
                 )
             )
             self.addAssert(
                 self.instance.Eq(self.aDouble[wIntern-1:0], self.instance.Const(0, wIntern))
                 | self.instance.Eq(
                     self.instance.Sext(self.bDouble[wIntern-1:0],extend),
-                    self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(self.resDouble[w-1:0], self.instance.Sext(self.aDouble[wIntern-1:0],extend))
+                    self.ufManager.getFunction(UFSymbol.SDIV, w, isGlobal=True)(
+                        self.ufManager.getFunction(UFSymbol.MUL, w, isGlobal=True)(
+                            self.instance.Sext(self.aDouble[wIntern-1:0],extend),
+                            self.instance.Sext(self.bDouble[wIntern-1:0],extend),
+                        ),
+                        self.instance.Sext(self.aDouble[wIntern-1:0],extend)
+                    )
                 )
             )
         
@@ -381,8 +420,8 @@ class MulNode(BinaryOperation):
         # bv1 negative
         # -> There must be at least w+1 leading zeros (positive)/ones (negative)
         
-        for i in range(1, w-1):
-            disjunction = disjunction | ( self.instance.Redand(bv1[:i]) & self.instance.Not(self.instance.Redor(bv2[:w-i-2])) )
+        for i in range(1, w):
+            disjunction = disjunction | ( self.instance.Redand(bv1[:i]) & self.instance.Not(self.instance.Redor(bv2[:w-i-1])) )
         # for i in range(1,w):
         #     disjunction = disjunction | (
         #         bv1[0]
@@ -390,12 +429,12 @@ class MulNode(BinaryOperation):
 
         # bv2 negative
         # -> There must be at least w+1 leading zeros (positive)/ones (negative)
-        for i in range(1, w-1):
-            disjunction = disjunction | ( self.instance.Redand(bv2[:i]) & self.instance.Not(self.instance.Redor(bv1[:w-i-2])) )
+        for i in range(1, w):
+            disjunction = disjunction | ( self.instance.Redand(bv2[:i]) & self.instance.Not(self.instance.Redor(bv1[:w-i-1])) )
 
         # b1 and bv2 negative
         # -> There must be at least w+2 leading ones (as both is negative)
-        for i in range(1, w-2):
-            disjunction = disjunction | ( self.instance.Redand(bv1[:i]) & self.instance.Redand(bv2[:w-i-3]) )
+        for i in range(1, w-1):
+            disjunction = disjunction | ( self.instance.Redand(bv1[:i]) & self.instance.Redand(bv2[:w-i-2]) )
 
         return disjunction
