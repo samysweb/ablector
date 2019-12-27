@@ -6,6 +6,9 @@ from ablector.src.UFManager import UFSymbol
 logger = logging.getLogger('UnderapproxNode')
 
 class UnderapproxNode(BinaryOperation):
+
+    MaxEffectiveBitwidth = 16
+
     def __init__(self,
         aParam,
         bParam,
@@ -49,7 +52,7 @@ class UnderapproxNode(BinaryOperation):
                 self.addAssert(self.instance.Not(self.assumptionVar))
                 self.assumptionVar = self.instance.Var(self._boolsort)
                 self.effectiveBitwidth = 2*self.effectiveBitwidth
-                if self.effectiveBitwidth >= self.a.width:
+                if self.effectiveBitwidth >= self.a.width or self.effectiveBitwidth > self.MaxEffectiveBitwidth:
                     self.doUnderapprox = False
                     self.underapproxPhase = False
                     self.assumeOnNext = False
