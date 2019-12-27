@@ -1,3 +1,7 @@
+import logging
+
+logger = logging.getLogger('BinaryOperation')
+
 class BinaryOperation:
     """
     Method which initializes a binary operation
@@ -48,12 +52,21 @@ class BinaryOperation:
         # Assertion managment
         self.nextAsserts = []
 
+        # Underapprox Setup
+        if self.a.width > 2:
+            self.doUnderapprox = True
+            self.underapproxPhase = True
+            self.effectiveBitwidth = 2
+        else:
+            self.doUnderapprox = False
+
     """
     Adds all assertions of the current refinement stage to the solver instance
     (Must only be called after `refine`)
     Attention: This resets the assertions and must therefore only be called once per phase!
     """
     def doAssert(self):
+        logger.debug("Adding assumption...")
         for f in self.nextAsserts:
             self.instance.Assert(f)
         self.nextAsserts = []
@@ -86,7 +99,7 @@ class BinaryOperation:
     Executes the next refinement step.
     This includes adding the "true" constraints in the last refinement step!
     """
-    def refine(self):
+    def refine(self, res):
         pass
 
     def msdIs(self, bv, pos):

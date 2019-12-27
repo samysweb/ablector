@@ -1,12 +1,12 @@
 import logging
 
-from ablector.src.nodes.binOp import BinaryOperation
+from ablector.src.nodes.underapprox import UnderapproxNode
 from ablector.src.util import Bin2Int, Int2Bin
 from ablector.src.UFManager import UFSymbol
 
 logger = logging.getLogger('SdivNode')
 
-class SdivNode(BinaryOperation):
+class SdivNode(UnderapproxNode):
     MaxRefinements = 4
 
     def __init__(self, aParam, bParam, instanceParam, ufManagerParam):
@@ -53,58 +53,63 @@ class SdivNode(BinaryOperation):
     def isExact(self):
         return SdivNode.MaxRefinements == self.refinementCount
     
-    def isCorrect(self):
-        a = Bin2Int(self.a.assignment)
-        a1 = a
-        b = Bin2Int(self.b.assignment)
-        b1 = b
-        if b == 0:
-            if self.a.assignment[0]=="1" or a == 0:
-                req=Int2Bin(1,self.res.width)
+    def isCorrect(self, res):
+        if res == self.instance.UNSAT:
+            return super().isCorrect()
+        else:
+            a = Bin2Int(self.a.assignment)
+            a1 = a
+            b = Bin2Int(self.b.assignment)
+            b1 = b
+            if b == 0:
+                if self.a.assignment[0]=="1" or a == 0:
+                    req=Int2Bin(1,self.res.width)
+                else:
+                    req=self.a.assignment
             else:
-                req=self.a.assignment
-        else:
-            if a1 < 0:
-                a1 = -a1
-            if b1 < 0:
-                b1 = -b1
-            req1 = a1 // b1
-            if (a < 0 and b>=0) or (b < 0 and a>=0):
-                req1 = -req1
-            req=Int2Bin(req1, self.res.width)[-self.res.width:]
-        logger.debug("a: "+str(self.a.assignment)+" ("+str(Bin2Int(self.a.assignment))+")")
-        logger.debug("b: "+str(self.b.assignment)+" ("+str(Bin2Int(self.b.assignment))+")")
-        logger.debug("res: "+str(self.res.assignment)+" ("+str(Bin2Int(self.res.assignment))+")")
-        logger.debug("req: "+str(req)+" ("+str(Bin2Int(req))+")")
-        return req == self.res.assignment
+                if a1 < 0:
+                    a1 = -a1
+                if b1 < 0:
+                    b1 = -b1
+                req1 = a1 // b1
+                if (a < 0 and b>=0) or (b < 0 and a>=0):
+                    req1 = -req1
+                req=Int2Bin(req1, self.res.width)[-self.res.width:]
+            logger.debug("a: "+str(self.a.assignment)+" ("+str(Bin2Int(self.a.assignment))+")")
+            logger.debug("b: "+str(self.b.assignment)+" ("+str(Bin2Int(self.b.assignment))+")")
+            logger.debug("res: "+str(self.res.assignment)+" ("+str(Bin2Int(self.res.assignment))+")")
+            logger.debug("req: "+str(req)+" ("+str(Bin2Int(req))+")")
+            return req == self.res.assignment
     
-    def refine(self):
-        if self.refinementCount == -1:
-            if self.instance.config.isOmitted('sdiv', 0):
+    def refine(self, res):
+        super().refine(res)
+        if res == self.instance.SAT:
+            if self.refinementCount == -1:
+                if self.instance.config.isOmitted('sdiv', 0):
+                    self.refinementCount+=1
+                    return self.refine()
+                self.refinement1()
                 self.refinementCount+=1
-                return self.refine()
-            self.refinement1()
-            self.refinementCount+=1
-            self.initStage = False
-        elif self.refinementCount == 0:
-            if self.instance.config.isOmitted('sdiv', 1):
+                self.initStage = False
+            elif self.refinementCount == 0:
+                if self.instance.config.isOmitted('sdiv', 1):
+                    self.refinementCount+=1
+                    return self.refine()
+                self.refinement2()
+                self.refinementCount += 1
+                self.initStage = False
+            elif self.refinementCount == 1:
+                if self.instance.config.isOmitted('sdiv', 2):
+                    self.refinementCount+=1
+                    return self.refine()
+                self.ufAbstraction()
                 self.refinementCount+=1
-                return self.refine()
-            self.refinement2()
-            self.refinementCount += 1
-            self.initStage = False
-        elif self.refinementCount == 1:
-            if self.instance.config.isOmitted('sdiv', 2):
-                self.refinementCount+=1
-                return self.refine()
-            self.ufAbstraction()
-            self.refinementCount+=1
-            self.initStage = False
-        else:
-            self.addLogic()
-            self.initStage = False
-            if self.refinementCount!=3:
-                self.refinementCount=3
+                self.initStage = False
+            else:
+                self.addLogic()
+                self.initStage = False
+                if self.refinementCount!=3:
+                    self.refinementCount=3
     
     def refinement1(self):
         _zero = self.instance.Const(0, self.a.width)
@@ -239,3 +244,13 @@ class SdivNode(BinaryOperation):
             logger.info("Level "+str(self.refinementCount))
         else:
             logger.info("Level "+str(self.refinementCount)+" - Bit "+str(self.addedIntervals))
+
+    """
+    Use assumptionVar to effectiveBitwidth create the necessary assumptions with addAssert
+    """
+    def addAssumptions(self):
+        self.instance.Implies(self.assumptionVar, self.instance.Eq(self.res, self.instance.Sdiv(self.a, self.b, normal=True)))
+        if self.effectiveBitwidth < self.a.width:
+            for i in range(self.effectiveBitwidth, self.a.width):
+                self.instance.Implies(self.assumptionVar, self.instance.Iff(self.a[self.effectiveBitwidth-1], self.a[i]))
+                self.instance.Implies(self.assumptionVar, self.instance.Iff(self.b[self.effectiveBitwidth-1], self.b[i]))

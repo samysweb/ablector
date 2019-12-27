@@ -26,7 +26,7 @@ class Ablector(Boolector):
         refinementTime = 0
         startTime = time.clock()
         for n in self.abstractedNodes:
-            n.refine()
+            n.refine(self.SAT)
         for n in self.abstractedNodes:
             n.doAssert()
         logger.info("*** ROUND 0")
@@ -38,20 +38,20 @@ class Ablector(Boolector):
             absNodeBackup.append(x)
         invalid = True
         roundNum=0
-        while res == self.SAT and invalid:
+        while invalid:
             changed = False
             pos = 0
             while pos < len(self.abstractedNodes):
                 toRefine = self.abstractedNodes.pop(pos)
                 if toRefine.isExact():
                     continue
-                elif toRefine.isCorrect():
+                elif toRefine.isCorrect(res):
                     logger.debug("CORRECT WITHOUT FULL CONSTRAINTS!")
                     self.abstractedNodes.insert(pos, toRefine)
                     pos+=1
                     continue
                 else:
-                    toRefine.refine()
+                    toRefine.refine(res)
                     self.abstractedNodes.insert(pos, toRefine)
                     pos+=1
                     changed = True
