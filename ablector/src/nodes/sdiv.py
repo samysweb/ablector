@@ -82,8 +82,8 @@ class SdivNode(UnderapproxNode):
             return req == self.res.assignment
     
     def refine(self, res):
-        super().refine(res)
-        if res == self.instance.SAT:
+        wasUnderapprox = super().refine(res)
+        if not wasUnderapprox and res == self.instance.SAT:
             if self.refinementCount == -1:
                 if self.instance.config.isOmitted('sdiv', 0):
                     self.refinementCount+=1

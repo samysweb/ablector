@@ -35,7 +35,7 @@ class UnderapproxNode(BinaryOperation):
     
     def isCorrect(self):
         if self.doUnderapprox and self.underapproxPhase:
-            return not self.instance.Failed(self.assumptionVar) or self.effectiveBitwidth >= self.a.width
+            return not self.instance.Failed(self.assumptionVar)
         else:
             return True
     
@@ -44,13 +44,20 @@ class UnderapproxNode(BinaryOperation):
             if self.underapproxPhase:
                 self.underapproxPhase = False
                 self.assumeOnNext = False
+                return True # It was underapprox phase => do not update overapprox
             else:
                 self.addAssert(self.instance.Not(self.assumptionVar))
                 self.assumptionVar = self.instance.Var(self._boolsort)
                 self.effectiveBitwidth = 2*self.effectiveBitwidth
+                if self.effectiveBitwidth >= self.a.width:
+                    self.doUnderapprox = False
+                    self.underapproxPhase = False
+                    self.assumeOnNext = False
+                    return False # It was no underapprox phase => update overapprox
                 self.addAssumptions()
                 self.underapproxPhase = True
                 self.assumeOnNext = True
+                return False # It was no underapprox phase => update overapprox
     
     def doAssert(self):
         super().doAssert()

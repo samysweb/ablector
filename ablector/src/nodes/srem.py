@@ -39,8 +39,8 @@ class SremNode(UnderapproxNode):
                 return Int2Bin(a % b, self.res.width) == self.res.assignment
     
     def refine(self, res):
-        super().refine(res)
-        if res == self.instance.SAT:
+        wasUnderapprox = super().refine(res)
+        if not wasUnderapprox and res == self.instance.SAT:
             if self.refinementCount == -1:
                 self.setupInitConstraints()
                 self.refinementCount+=1
