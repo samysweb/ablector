@@ -54,6 +54,12 @@ class BinaryOperation:
         # Assertion managment
         self.nextAsserts = []
         self.doUnderapprox = True
+        #Underapproximation
+        self.effectiveBitwidth=1
+        _boolsort   = self.instance.BitVecSort(1)
+        self.assumptionVar = self.instance.Var(_boolsort)
+        self.addUnderapproxAsserts()
+        self.underapproxPhase=False
     
     def initAssumptionVar(self):
         _boolsort   = self.instance.BitVecSort(1)
@@ -61,7 +67,6 @@ class BinaryOperation:
         self.assumptionVar = self.instance.Var(_boolsort)
 
     def stopUnderapprox(self):
-        self.assumeOnNext=False
         self.underapproxPhase=False
         self.addAssert(self.instance.Not(self.assumptionVar))
 
@@ -75,7 +80,8 @@ class BinaryOperation:
             self.instance.Assert(f)
         self.nextAsserts = []
         if self.doUnderapprox:
-            if self.assumeOnNext:
+            if self.underapproxPhase:
+                logger.debug("Assuming bitwidth "+str(self.effectiveBitwidth))
                 self.instance.Assume(self.assumptionVar)
             else:
                 self.instance.Assume(self.instance.Not(self.assumptionVar))
@@ -123,12 +129,6 @@ class BinaryOperation:
     def initUnderapprox(self):
         if self.a.width > 2 and self.doUnderapprox:
             self.underapproxPhase = True
-            self.assumeOnNext = False
-            self.effectiveBitwidth = 1
-            _boolsort   = self.instance.BitVecSort(1)
-            self.assumptionVar = self.instance.Var(_boolsort)
-            self.addUnderapproxAsserts()
-            self.assumeOnNext = True
 
     """
     Must only be called if hasAssumptionFailed returns true!
@@ -139,10 +139,11 @@ class BinaryOperation:
         self.effectiveBitwidth = self.effectiveBitwidth*2
         if self.effectiveBitwidth > self.MaxEffectiveBitwidth:
             self.stopUnderapprox()
+            self.doUnderapprox=False
         else:
             self.initAssumptionVar()
             self.addUnderapproxAsserts()
-            self.assumeOnNext=True
+            self.underapproxPhase=False
 
     def addUnderapproxAsserts(self):
         pass

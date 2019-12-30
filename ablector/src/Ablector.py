@@ -39,8 +39,9 @@ class Ablector(Boolector):
         for x in self.abstractedNodes:
             absNodeBackup.append(x)
         roundNum=0
+        initRoundFinish=False
         if res != self.SAT: # found satisfying assignement due to underapprox
-            while roundNum==0 or res == self.SAT:
+            while (not initRoundFinish and roundNum==0) or res == self.SAT:
                 changed = False
                 pos = 0
                 while roundNum!=0 and pos < len(self.abstractedNodes):
@@ -61,15 +62,16 @@ class Ablector(Boolector):
                     # We found a valid satisfiable assignment
                     break
                 else:
-                    roundNum+=1
-                    logger.info("*** ROUND "+str(roundNum)+" - 0")
-                    for n in self.abstractedNodes:
-                        n.initUnderapprox()
-                    for n in self.abstractedNodes:
-                        n.doAssert()
-                    satTime = time.clock()
-                    res = super().Sat()
-                    refinementTime -= (time.clock() - satTime)
+                    if res == self.SAT:
+                        roundNum+=1
+                        logger.info("*** ROUND "+str(roundNum)+" - 0")
+                        for n in self.abstractedNodes:
+                            n.initUnderapprox()
+                        for n in self.abstractedNodes:
+                            n.doAssert()
+                        satTime = time.clock()
+                        res = super().Sat()
+                        refinementTime -= (time.clock() - satTime)
                     subround = 0
                     while res == self.UNSAT:
                         changed = False
@@ -82,6 +84,8 @@ class Ablector(Boolector):
                             pos+=1
                         if changed == False:
                             logger.debug("Underapprox Loop: No nodes changes, therefore valid unsat result.")
+                            if roundNum == 0:
+                                initRoundFinish=True
                             break
                         else:
                             subround+=1
