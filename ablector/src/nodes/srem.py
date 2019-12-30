@@ -40,6 +40,8 @@ class SremNode(BinaryOperation):
             self.setupInitConstraints()
             self.refinementCount+=1
         else:
+            self.stopUnderapprox()
+            self.doUnderapprox=False
             self.addAssert(self.instance.Eq(self.res, self.instance.Srem(self.a, self.b, normal=True)))
             self.refinementCount+=1
 
@@ -69,3 +71,17 @@ class SremNode(BinaryOperation):
         )
     def logMaxLevel(self):
         logger.info("Level "+str(self.refinementCount))
+
+    
+    def addUnderapproxAsserts(self):
+        self.addAssert(
+            self.instance.Implies(self.assumptionVar, self.instance.Eq(self.res, self.instance.Sdiv(self.a, self.b, normal=True)))
+        )
+        if self.effectiveBitwidth < self.a.width:
+            for i in range(self.effectiveBitwidth, self.a.width):
+                self.addAssert(
+                    self.instance.Implies(self.assumptionVar, self.instance.Iff(self.a[self.effectiveBitwidth-1], self.a[i]))
+                )
+                self.addAssert(
+                    self.instance.Implies(self.assumptionVar, self.instance.Iff(self.b[self.effectiveBitwidth-1], self.b[i]))
+                )

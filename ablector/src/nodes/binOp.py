@@ -1,4 +1,10 @@
+import logging
+
+
+logger = logging.getLogger('Ablector')
+
 class BinaryOperation:
+    MaxEffectiveBitwidth=8
     """
     Method which initializes a binary operation
 
@@ -47,6 +53,17 @@ class BinaryOperation:
         self.res = self.ufManager.getFunction(symbol, width)(self.a, self.b)
         # Assertion managment
         self.nextAsserts = []
+        self.doUnderapprox = True
+    
+    def initAssumptionVar(self):
+        _boolsort   = self.instance.BitVecSort(1)
+        self.addAssert(self.instance.Not(self.assumptionVar))
+        self.assumptionVar = self.instance.Var(_boolsort)
+
+    def stopUnderapprox(self):
+        self.assumeOnNext=False
+        self.underapproxPhase=False
+        self.addAssert(self.instance.Not(self.assumptionVar))
 
     """
     Adds all assertions of the current refinement stage to the solver instance
@@ -57,6 +74,11 @@ class BinaryOperation:
         for f in self.nextAsserts:
             self.instance.Assert(f)
         self.nextAsserts = []
+        if self.doUnderapprox:
+            if self.assumeOnNext:
+                self.instance.Assume(self.assumptionVar)
+            else:
+                self.instance.Assume(self.instance.Not(self.assumptionVar))
 
     """
     Adds to the assertions that will be added in the upcoming refinement stage
@@ -81,12 +103,48 @@ class BinaryOperation:
     """
     def isCorrect(self):
         pass
-    
+
     """
     Executes the next refinement step.
     This includes adding the "true" constraints in the last refinement step!
     """
     def refine(self):
+        pass
+
+    """
+    True if in underapprox phase and underapproximation variable has failed in the previous execution
+    """
+    def hasAssumptionFailed(self):
+        if not self.doUnderapprox or not self.underapproxPhase:
+            logger.debug("Wrong phase")
+            return False
+        return self.instance.Failed(self.assumptionVar)
+    
+    def initUnderapprox(self):
+        if self.a.width > 2 and self.doUnderapprox:
+            self.underapproxPhase = True
+            self.assumeOnNext = False
+            self.effectiveBitwidth = 1
+            _boolsort   = self.instance.BitVecSort(1)
+            self.assumptionVar = self.instance.Var(_boolsort)
+            self.addUnderapproxAsserts()
+            self.assumeOnNext = True
+
+    """
+    Must only be called if hasAssumptionFailed returns true!
+    """
+    def refineUnderapprox(self):
+        if not self.doUnderapprox or not self.underapproxPhase: #????
+            raise Exception()
+        self.effectiveBitwidth = self.effectiveBitwidth*2
+        if self.effectiveBitwidth > self.MaxEffectiveBitwidth:
+            self.stopUnderapprox()
+        else:
+            self.initAssumptionVar()
+            self.addUnderapproxAsserts()
+            self.assumeOnNext=True
+
+    def addUnderapproxAsserts(self):
         pass
 
     def msdIs(self, bv, pos):

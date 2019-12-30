@@ -28,6 +28,8 @@ class Ablector(Boolector):
         for n in self.abstractedNodes:
             n.refine()
         for n in self.abstractedNodes:
+            n.initUnderapprox()
+        for n in self.abstractedNodes:
             n.doAssert()
         logger.info("*** ROUND 0")
         satTime = time.clock()
@@ -36,36 +38,59 @@ class Ablector(Boolector):
         absNodeBackup = []
         for x in self.abstractedNodes:
             absNodeBackup.append(x)
-        invalid = True
         roundNum=0
-        while res == self.SAT and invalid:
-            changed = False
-            pos = 0
-            while pos < len(self.abstractedNodes):
-                toRefine = self.abstractedNodes.pop(pos)
-                if toRefine.isExact():
-                    continue
-                elif toRefine.isCorrect():
-                    logger.debug("CORRECT WITHOUT FULL CONSTRAINTS!")
-                    self.abstractedNodes.insert(pos, toRefine)
-                    pos+=1
-                    continue
+        if res != self.SAT: # found satisfying assignement due to underapprox
+            while roundNum==0 or res == self.SAT:
+                changed = False
+                pos = 0
+                while roundNum!=0 and pos < len(self.abstractedNodes):
+                    toRefine = self.abstractedNodes.pop(pos)
+                    if toRefine.isExact():
+                        continue
+                    elif toRefine.isCorrect():
+                        logger.debug("CORRECT WITHOUT FULL CONSTRAINTS!")
+                        self.abstractedNodes.insert(pos, toRefine)
+                        pos+=1
+                        continue
+                    else:
+                        toRefine.refine()
+                        self.abstractedNodes.insert(pos, toRefine)
+                        pos+=1
+                        changed = True
+                if not changed and roundNum>0:
+                    # We found a valid satisfiable assignment
+                    break
                 else:
-                    toRefine.refine()
-                    self.abstractedNodes.insert(pos, toRefine)
-                    pos+=1
-                    changed = True
-            if not changed:
-                invalid=False
-                break
-            else:
-                roundNum+=1
-                logger.info("*** ROUND "+str(roundNum))
-                for n in self.abstractedNodes:
-                    n.doAssert()
-                satTime = time.clock()
-                res = super().Sat()
-                refinementTime -= (time.clock() - satTime)
+                    roundNum+=1
+                    logger.info("*** ROUND "+str(roundNum)+" - 0")
+                    for n in self.abstractedNodes:
+                        n.initUnderapprox()
+                    for n in self.abstractedNodes:
+                        n.doAssert()
+                    satTime = time.clock()
+                    res = super().Sat()
+                    refinementTime -= (time.clock() - satTime)
+                    subround = 0
+                    while res == self.UNSAT:
+                        changed = False
+                        pos=0
+                        while pos < len(self.abstractedNodes):
+                            toRefine = self.abstractedNodes[pos]
+                            if toRefine.hasAssumptionFailed():
+                                toRefine.refineUnderapprox()
+                                changed=True
+                            pos+=1
+                        if changed == False:
+                            logger.debug("Underapprox Loop: No nodes changes, therefore valid unsat result.")
+                            break
+                        else:
+                            subround+=1
+                            logger.info("*** ROUND "+str(roundNum)+" - "+str(subround))
+                            for n in self.abstractedNodes:
+                                n.doAssert()
+                            satTime = time.clock()
+                            res = super().Sat()
+                            refinementTime -= (time.clock() - satTime)
         endTime = time.clock()
         self.ablectorTime+=(endTime-startTime)
         refinementTime+=(endTime-startTime)

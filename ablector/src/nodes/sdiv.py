@@ -205,10 +205,14 @@ class SdivNode(BinaryOperation):
     
     def addLogic(self):
         if not self.initStage:
+            self.stopUnderapprox()
+            self.doUnderapprox=False
             val = self.absA.assignment
             msd = len(val.lstrip('0'))-1
             logger.debug("Round: "+str(self.addedIntervals)+" - msd:"+str(msd)+" - width: "+str(self.a.width)+" - a: "+str(self.a.assignment)+" - b: "+str(self.b.assignment)+" - res: "+str(self.res.assignment))
         else:
+            self.stopUnderapprox()
+            self.doUnderapprox=False
             msd=-1
         if msd == self.absA.width-1:
             self.addAssert(
@@ -239,3 +243,16 @@ class SdivNode(BinaryOperation):
             logger.info("Level "+str(self.refinementCount))
         else:
             logger.info("Level "+str(self.refinementCount)+" - Bit "+str(self.addedIntervals))
+    
+    def addUnderapproxAsserts(self):
+        self.addAssert(
+            self.instance.Implies(self.assumptionVar, self.instance.Eq(self.res, self.instance.Sdiv(self.a, self.b, normal=True)))
+        )
+        if self.effectiveBitwidth < self.a.width:
+            for i in range(self.effectiveBitwidth, self.a.width):
+                self.addAssert(
+                    self.instance.Implies(self.assumptionVar, self.instance.Iff(self.a[self.effectiveBitwidth-1], self.a[i]))
+                )
+                self.addAssert(
+                    self.instance.Implies(self.assumptionVar, self.instance.Iff(self.b[self.effectiveBitwidth-1], self.b[i]))
+                )

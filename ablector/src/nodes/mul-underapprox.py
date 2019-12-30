@@ -1,12 +1,12 @@
 import logging
 
-from ablector.src.nodes.binOp import BinaryOperation
+from ablector.src.nodes.underapprox import UnderapproxNode
 from ablector.src.util import Bin2Int, Int2Bin
 from ablector.src.UFManager import UFSymbol
 
 logger = logging.getLogger('MulNode')
 
-class MulNode(BinaryOperation):
+class MulNode(UnderapproxNode):
     MaxRefinements = 4
 
     def __init__(self, aParam, bParam, instanceParam, ufManagerParam):
@@ -73,7 +73,7 @@ class MulNode(BinaryOperation):
     def isExact(self):
         return MulNode.MaxRefinements == self.refinementCount
     
-    def isCorrect(self):
+    def isCorrect(self, res):
         """
         print("Checking assignment...")
         print(self.a.assignment)
@@ -85,59 +85,50 @@ class MulNode(BinaryOperation):
         print(Int2Bin(Bin2Int(self.a.assignment) * Bin2Int(self.b.assignment), self.res.width))
         print(Int2Bin(Bin2Int(self.a.assignment) * Bin2Int(self.b.assignment), self.res.width) == self.res.assignment)
         """
-        req = Int2Bin(Bin2Int(self.a.assignment) * Bin2Int(self.b.assignment), self.res.width)[-self.res.width:]
-        logger.debug("a: "+str(self.a.assignment))
-        logger.debug("b: "+str(self.b.assignment))
-        logger.debug("res: "+str(self.res.assignment))
-        logger.debug("req: "+str(req))
-        return req == self.res.assignment
+        if res == self.instance.UNSAT:
+            return super().isCorrect()
+        else:
+            req = Int2Bin(Bin2Int(self.a.assignment) * Bin2Int(self.b.assignment), self.res.width)[-self.res.width:]
+            logger.debug("a: "+str(self.a.assignment))
+            logger.debug("b: "+str(self.b.assignment))
+            logger.debug("res: "+str(self.res.assignment))
+            logger.debug("req: "+str(req))
+            return req == self.res.assignment
     
-    def refine(self):
-        if self.refinementCount == -1:
-            if self.instance.config.isOmitted('mul', 0):
+    def refine(self, res):
+        wasUnderapprox = super().refine(res)
+        if not wasUnderapprox and res == self.instance.SAT:
+            if self.refinementCount == -1:
+                if self.instance.config.isOmitted('mul', 0):
+                    self.refinementCount+=1
+                    return self.refine()
+                self.refinement1() 
                 self.refinementCount+=1
-                return self.refine()
-            self.refinement1() 
-            self.refinementCount+=1
-            self.initStage = False
-        elif self.refinementCount == 0:
-            if self.instance.config.isOmitted('mul', 1):
+                self.initStage = False
+            elif self.refinementCount == 0:
+                if self.instance.config.isOmitted('mul', 1):
+                    self.refinementCount+=1
+                    return self.refine()
+                self.refinement2()
                 self.refinementCount+=1
-                return self.refine()
-            self.refinement2()
-            self.refinementCount+=1
-            self.initStage = False
-        elif self.refinementCount == 1:
-            if self.instance.config.isOmitted('mul', 2):
+                self.initStage = False
+            elif self.refinementCount == 1:
+                if self.instance.config.isOmitted('mul', 2):
+                    self.refinementCount+=1
+                    return self.refine()
+                self.setupInitConstraints()
                 self.refinementCount+=1
-                return self.refine()
-            self.setupInitConstraints()
-            self.refinementCount+=1
-            self.initStage = False
-        elif self.refinementCount == 2:
-            self.refinementCount+=1
-        if self.refinementCount == 3:
-            self.addMulBit()
-            self.initStage = False
-            #f = self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
-            #self.addAssert(f)
-        if self.refinementCount>self.MaxRefinements:
-            # Should not be refined again
-            raise Exception()
-    
-    def addUnderapproxAsserts(self):
-        self.addAssert(
-            self.instance.Implies(self.assumptionVar, self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True)))
-        )
-        if self.effectiveBitwidth < self.a.width:
-            for i in range(self.effectiveBitwidth, self.a.width):
-                self.addAssert(
-                    self.instance.Implies(self.assumptionVar, self.instance.Iff(self.a[self.effectiveBitwidth-1], self.a[i]))
-                )
-                self.addAssert(
-                    self.instance.Implies(self.assumptionVar, self.instance.Iff(self.b[self.effectiveBitwidth-1], self.b[i]))
-                )
-        
+                self.initStage = False
+            elif self.refinementCount == 2:
+                self.refinementCount+=1
+            if self.refinementCount == 3:
+                self.addMulBit()
+                self.initStage = False
+                #f = self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
+                #self.addAssert(f)
+            if self.refinementCount>self.MaxRefinements:
+                # Should not be refined again
+                raise Exception()
 
     def setupInitConstraints(self):
         _zero = self.instance.Const(0, self.a.width)
@@ -389,14 +380,10 @@ class MulNode(BinaryOperation):
         # TODO (steuber): Check this!
         #logger.info("Level 3 - Mulbit "+str(self.addedMulBits))
         if not self.initStage:
-            self.doUnderapprox=False
-            self.stopUnderapprox()
             val = self.absA.assignment
             msd = len(val.lstrip('0'))-1
             logger.debug("Round: "+str(self.addedMulBits)+" - msd:"+str(msd)+" - width: "+str(self.a.width)+" - a: "+str(val)+" - b: "+str(self.b.assignment)+" - res: "+str(self.res.assignment))
         else:
-            self.doUnderapprox=False
-            self.stopUnderapprox()
             msd = -1
         if msd == self.absA.width-1:
             self.addAssert(
@@ -455,3 +442,13 @@ class MulNode(BinaryOperation):
             disjunction = disjunction | ( self.instance.Redand(bv1[:i]) & self.instance.Redand(bv2[:w-i-2]) )
 
         return disjunction
+    
+    """
+    Use assumptionVar to effectiveBitwidth create the necessary assumptions with addAssert
+    """
+    def addAssumptions(self):
+        self.instance.Implies(self.assumptionVar, self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True)))
+        if self.effectiveBitwidth < self.a.width:
+            for i in range(self.effectiveBitwidth, self.a.width):
+                self.instance.Implies(self.assumptionVar, self.instance.Iff(self.a[self.effectiveBitwidth-1], self.a[i]))
+                self.instance.Implies(self.assumptionVar, self.instance.Iff(self.b[self.effectiveBitwidth-1], self.b[i]))
