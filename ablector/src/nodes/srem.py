@@ -75,7 +75,7 @@ class SremNode(BinaryOperation):
     
     def addUnderapproxAsserts(self):
         self.addAssert(
-            self.instance.Implies(self.assumptionVar, self.instance.Eq(self.res, self.instance.Sdiv(self.a, self.b, normal=True)))
+            self.instance.Implies(self.assumptionVar, self.instance.Eq(self.res, self.instance.Srem(self.a, self.b, normal=True)))
         )
         if self.effectiveBitwidth < self.a.width:
             for i in range(self.effectiveBitwidth, self.a.width):
