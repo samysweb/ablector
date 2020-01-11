@@ -101,10 +101,10 @@ class SdivNode(BinaryOperation):
             self.refinementCount+=1
             self.initStage = False
         else:
-            self.addLogic()
             self.initStage = False
-            if self.refinementCount!=3:
-                self.refinementCount=3
+            f = self.instance.Eq(self.res, self.instance.Sdiv(self.a, self.b, normal=True))
+            self.addAssert(f)
+            self.refinementCount+=1
     
     def refinement1(self):
         _zero = self.instance.Const(0, self.a.width)

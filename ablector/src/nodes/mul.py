@@ -117,10 +117,11 @@ class MulNode(BinaryOperation):
         elif self.refinementCount == 2:
             self.refinementCount+=1
         if self.refinementCount == 3:
-            self.addMulBit()
+            # self.addMulBit()
             self.initStage = False
-            #f = self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
-            #self.addAssert(f)
+            f = self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
+            self.addAssert(f)
+            self.refinementCount+=1
         if self.refinementCount>self.MaxRefinements:
             # Should not be refined again
             raise Exception()

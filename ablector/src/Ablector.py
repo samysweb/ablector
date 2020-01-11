@@ -2,7 +2,7 @@ import logging
 import time
 
 from pyboolector import Boolector
-from pyboolector import BTOR_OPT_INCREMENTAL, BTOR_OPT_MODEL_GEN
+from pyboolector import BTOR_OPT_INCREMENTAL, BTOR_OPT_MODEL_GEN, BTOR_OPT_AUTO_CLEANUP
 
 from ablector.src.nodes import MulNode, SdivNode, SremNode
 from ablector.src.UFManager import UFManager
@@ -20,6 +20,7 @@ class Ablector(Boolector):
         self.config = configParam
         self.Set_opt(BTOR_OPT_INCREMENTAL,1)
         self.Set_opt(BTOR_OPT_MODEL_GEN,2)
+        self.Set_opt(BTOR_OPT_AUTO_CLEANUP,1)
         self.abstractedNodes=[]
         self.ufManager = UFManager(self, self.config)
         self.ablectorTime+=(time.clock()-t)
@@ -36,8 +37,8 @@ class Ablector(Boolector):
         logger.info("*** ROUND 0")
         satTime = time.clock()
         # Round 0 - 0: Run sat with active underapproximation for all nodes
-        # res = super().Sat(lod_limit=self.LodLimit, sat_limit=self.SatLimit)
-        res = super().Sat()
+        res = super().Sat(lod_limit=self.LodLimit, sat_limit=self.SatLimit)
+        #res = super().Sat()
         refinementTime -= (time.clock() - satTime)
         absNodeBackup = []
         for x in self.abstractedNodes:
@@ -45,55 +46,75 @@ class Ablector(Boolector):
         roundNum=0
         initRoundFinished=False
         if res != self.SAT: # If first run found satisfiable result, we can stop right here...
-            while (not initRoundFinished and roundNum==0) or res == self.SAT:
+            while (not initRoundFinished and roundNum==0) or res == self.SAT or res == self.UNKNOWN:
                 # Indicates whether overapproximations (upper loop) or underapproximations (lower loop) were modified/dropped
                 changed = False
                 pos = 0
-                
+                # Indicates whether all abstractedNodes remaining are now exact (isExact() == True after refine())
+                if roundNum>0:
+                    reachedOriginalInstance = True
+                else:
+                    reachedOriginalInstance = False
                 while roundNum!=0 and pos < len(self.abstractedNodes): # From the 2nd round onwards we need to refine our overapproximations at this point...
                     toRefine = self.abstractedNodes.pop(pos)
                     if toRefine.isExact():
                         continue
-                    elif toRefine.isCorrect():
+                    elif res == self.SAT and toRefine.isCorrect():
                         logger.debug("CORRECT WITHOUT FULL CONSTRAINTS!")
                         self.abstractedNodes.insert(pos, toRefine)
                         pos+=1
                         continue
                     else:
                         toRefine.refine()
+                        if not toRefine.isExact():
+                            reachedOriginalInstance = False
                         self.abstractedNodes.insert(pos, toRefine)
                         pos+=1
                         changed = True
-                if not changed and roundNum>0: # From the 2nd round onwards no change is a sign of a sound & correct result
+                if reachedOriginalInstance:
+                    logger.debug("REACHED ORIGINAL INSTANCE")
+                if not changed and roundNum>0 and res != self.UNKNOWN: # From the 2nd round onwards no change is a sign of a sound & correct result
                     # We found a valid satisfiable assignment
                     break
                 else:
-                    if res == self.SAT:
+                    if roundNum>0:
                         # From the 2nd round onwards the result will always be satisfiable at this point
                         # (in the first round it will be unsatisfiable at this point - in this case we do not have to run the same thing again)
                         logger.info("*** ROUND "+str(roundNum)+" - 0")
-                        for n in self.abstractedNodes:
-                            n.initUnderapprox()
+                        if not reachedOriginalInstance:
+                            for n in self.abstractedNodes:
+                                n.initUnderapprox()
                         for n in self.abstractedNodes:
                             n.doAssert()
                         satTime = time.clock()
                         # Run Sat with currently still active underapproximations
-                        res = super().Sat()
+                        if not reachedOriginalInstance:
+                            res = super().Sat(lod_limit=self.LodLimit, sat_limit=self.SatLimit)
+                        else:
+                            logger.debug("Running unconstraint SAT call")
+
+                            logger.debug("SAT?: "+str(res==self.SAT))
+                            logger.debug("UNSAT?: "+str(res==self.UNSAT))
+                            logger.debug("UNKNOWN?: "+str(res==self.UNKNOWN))
+                            res = super().Sat(lod_limit=-1, sat_limit=-1)
+                            logger.debug("SAT?: "+str(res==self.SAT))
+                            logger.debug("UNSAT?: "+str(res==self.UNSAT))
+                            logger.debug("UNKNOWN?: "+str(res==self.UNKNOWN))
                         refinementTime -= (time.clock() - satTime)
                     subround = 0
-                    while res == self.UNSAT:
+                    while res == self.UNSAT or res == self.UNKNOWN:
                         # If Sat() returns unsat with currently active underapproximations we must drop them for now and run again
                         # If Sat() returns sat we continue with the check on correctness at the begining of the outer loop
                         changed = False
                         pos=0
                         while pos < len(self.abstractedNodes):
                             toRefine = self.abstractedNodes[pos]
-                            if toRefine.hasAssumptionFailed():
+                            if (res == self.UNKNOWN and toRefine.shouldRefine()) or toRefine.hasAssumptionFailed():
                                 toRefine.refineUnderapprox()
                                 changed=True
                             pos+=1
                         if changed == False:
-                            logger.debug("Underapprox Loop: No node changes, therefore valid unsat result.")
+                            logger.debug("Underapprox Loop: No node changes, therefore no changing result from here on")
                             if roundNum == 0:
                                 initRoundFinished=True
                             break
@@ -103,7 +124,10 @@ class Ablector(Boolector):
                             for n in self.abstractedNodes:
                                 n.doAssert()
                             satTime = time.clock()
-                            res = super().Sat()
+                            if not reachedOriginalInstance:
+                                res = super().Sat(lod_limit=self.LodLimit, sat_limit=self.SatLimit)
+                            else:
+                                res = super().Sat()
                             refinementTime -= (time.clock() - satTime)
                     roundNum+=1
         endTime = time.clock()

@@ -144,6 +144,9 @@ class BinaryOperation:
             self.initAssumptionVar()
             self.addUnderapproxAsserts()
             self.underapproxPhase=False
+    
+    def shouldRefine(self):
+        return self.doUnderapprox and self.underapproxPhase
 
     def addUnderapproxAsserts(self):
         pass
