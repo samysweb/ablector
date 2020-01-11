@@ -11,6 +11,8 @@ from ablector.src.util import Bin2Int
 logger = logging.getLogger('Ablector')
 
 class Ablector(Boolector):
+    LodLimit = 100
+    SatLimit = 1000
     def __init__(self, configParam=None):
         self.ablectorTime = configParam.getTimeOffset()
         t = time.clock()
@@ -33,18 +35,22 @@ class Ablector(Boolector):
             n.doAssert()
         logger.info("*** ROUND 0")
         satTime = time.clock()
+        # Round 0 - 0: Run sat with active underapproximation for all nodes
+        # res = super().Sat(lod_limit=self.LodLimit, sat_limit=self.SatLimit)
         res = super().Sat()
         refinementTime -= (time.clock() - satTime)
         absNodeBackup = []
         for x in self.abstractedNodes:
             absNodeBackup.append(x)
         roundNum=0
-        initRoundFinish=False
-        if res != self.SAT: # found satisfying assignement due to underapprox
-            while (not initRoundFinish and roundNum==0) or res == self.SAT:
+        initRoundFinished=False
+        if res != self.SAT: # If first run found satisfiable result, we can stop right here...
+            while (not initRoundFinished and roundNum==0) or res == self.SAT:
+                # Indicates whether overapproximations (upper loop) or underapproximations (lower loop) were modified/dropped
                 changed = False
                 pos = 0
-                while roundNum!=0 and pos < len(self.abstractedNodes):
+                
+                while roundNum!=0 and pos < len(self.abstractedNodes): # From the 2nd round onwards we need to refine our overapproximations at this point...
                     toRefine = self.abstractedNodes.pop(pos)
                     if toRefine.isExact():
                         continue
@@ -58,22 +64,26 @@ class Ablector(Boolector):
                         self.abstractedNodes.insert(pos, toRefine)
                         pos+=1
                         changed = True
-                if not changed and roundNum>0:
+                if not changed and roundNum>0: # From the 2nd round onwards no change is a sign of a sound & correct result
                     # We found a valid satisfiable assignment
                     break
                 else:
                     if res == self.SAT:
-                        roundNum+=1
+                        # From the 2nd round onwards the result will always be satisfiable at this point
+                        # (in the first round it will be unsatisfiable at this point - in this case we do not have to run the same thing again)
                         logger.info("*** ROUND "+str(roundNum)+" - 0")
                         for n in self.abstractedNodes:
                             n.initUnderapprox()
                         for n in self.abstractedNodes:
                             n.doAssert()
                         satTime = time.clock()
+                        # Run Sat with currently still active underapproximations
                         res = super().Sat()
                         refinementTime -= (time.clock() - satTime)
                     subround = 0
                     while res == self.UNSAT:
+                        # If Sat() returns unsat with currently active underapproximations we must drop them for now and run again
+                        # If Sat() returns sat we continue with the check on correctness at the begining of the outer loop
                         changed = False
                         pos=0
                         while pos < len(self.abstractedNodes):
@@ -83,9 +93,9 @@ class Ablector(Boolector):
                                 changed=True
                             pos+=1
                         if changed == False:
-                            logger.debug("Underapprox Loop: No nodes changes, therefore valid unsat result.")
+                            logger.debug("Underapprox Loop: No node changes, therefore valid unsat result.")
                             if roundNum == 0:
-                                initRoundFinish=True
+                                initRoundFinished=True
                             break
                         else:
                             subround+=1
@@ -95,6 +105,7 @@ class Ablector(Boolector):
                             satTime = time.clock()
                             res = super().Sat()
                             refinementTime -= (time.clock() - satTime)
+                    roundNum+=1
         endTime = time.clock()
         self.ablectorTime+=(endTime-startTime)
         refinementTime+=(endTime-startTime)
