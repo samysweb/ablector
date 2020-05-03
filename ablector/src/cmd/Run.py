@@ -80,7 +80,7 @@ def main(args):
             print("SAT")
             # NOTE(steuber): This model also contains function assignments which were  assigned in previous rounds! This means that there may be *wrong* assignments for MUL, SDIV etc!
             # The function assignments therefore consist of a mix of wrong (later found to be irrelevant) assignments and right assignments
-            # a.btor.Print_model()
+            a.btor.Print_model()
         else:
             print("UNSAT")
             #a.btor.Dump(format="smt2")

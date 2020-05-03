@@ -33,7 +33,10 @@ class UdivNode(BinaryOperation):
     def isCorrect(self):
         a = Bin2Int(self.a.assignment, unsigned=True)
         b = Bin2Int(self.b.assignment, unsigned=True)
-        req1 = a // b
+        if b==0:
+            req1 = -1
+        else:
+            req1 = a // b
         req=Int2Bin(req1, self.res.width)
         logger.debug("a: "+str(self.a.assignment)+" ("+str(Bin2Int(self.a.assignment, unsigned=True))+")")
         logger.debug("b: "+str(self.b.assignment)+" ("+str(Bin2Int(self.b.assignment, unsigned=True))+")")
@@ -92,7 +95,7 @@ class UdivNode(BinaryOperation):
         # b=a => (a/b)=1
         self.addAssert(
             self.instance.Implies(
-                self.instance.Eq(self.b, self.a),
+                self.instance.Eq(self.b, self.a) & self.instance.Not(self.instance.Eq(self.b, _zero)),
                 self.instance.Eq(self.res, _one)
             )
         )
@@ -167,21 +170,21 @@ class UdivNode(BinaryOperation):
             self.addAssert(
                 self.instance.Implies(
                     self.instance.Ulte(2**msd, self.a),
-                    self.instance.Eq(self.res, self.instance.Udiv(self.a, self.b))
+                    self.instance.Eq(self.res, self.instance.Udiv(self.a, self.b, normal=True))
                 )
             )
         elif msd == -1:
             self.addAssert(
                 self.instance.Implies(
                     self.instance.Ult(self.a, 1),
-                    self.instance.Eq(self.res, self.instance.Udiv(self.a, self.b))
+                    self.instance.Eq(self.res, self.instance.Udiv(self.a, self.b, normal=True))
                 )
             )
         else:
             self.addAssert(
                 self.instance.Implies(
                     self.instance.Ulte(2**msd, self.a) & self.instance.Ult(self.a, 2**(msd+1)),
-                    self.instance.Eq(self.res, self.instance.Udiv(self.a, self.b))
+                    self.instance.Eq(self.res, self.instance.Udiv(self.a, self.b, normal=True))
                 )
             )
         self.addedIntervals+=1

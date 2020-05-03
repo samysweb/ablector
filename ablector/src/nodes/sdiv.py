@@ -133,7 +133,7 @@ class SdivNode(BinaryOperation):
         # b=a => (a/b)=1
         self.addAssert(
             self.instance.Implies(
-                self.instance.Eq(self.b, self.a),
+                self.instance.Eq(self.b, self.a) & self.instance.Not(self.instance.Eq(self.b, _zero)),
                 self.instance.Eq(self.res, _one)
             )
         )
@@ -214,21 +214,21 @@ class SdivNode(BinaryOperation):
             self.addAssert(
                 self.instance.Implies(
                     self.instance.Ulte(2**msd, self.absA),
-                    self.instance.Eq(self.udivRes, self.instance.Udiv(self.absA, self.absB))
+                    self.instance.Eq(self.udivRes, self.instance.Udiv(self.absA, self.absB, normal=True))
                 )
             )
         elif msd == -1:
             self.addAssert(
                 self.instance.Implies(
                     self.instance.Ult(self.absA, 1),
-                    self.instance.Eq(self.udivRes, self.instance.Udiv(self.absA, self.absB))
+                    self.instance.Eq(self.udivRes, self.instance.Udiv(self.absA, self.absB, normal=True))
                 )
             )
         else:
             self.addAssert(
                 self.instance.Implies(
                     self.instance.Ulte(2**msd, self.absA) & self.instance.Ult(self.absA, 2**(msd+1)),
-                    self.instance.Eq(self.udivRes, self.instance.Udiv(self.absA, self.absB))
+                    self.instance.Eq(self.udivRes, self.instance.Udiv(self.absA, self.absB, normal=True))
                 )
             )
         self.addedIntervals+=1
