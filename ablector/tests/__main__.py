@@ -13,6 +13,8 @@ from pysmt.environment import reset_env
 from ablector.src.cmd.Run import parseArgs
 from ablector.src.pysmt.ator import AblectorSolver
 
+logger = logging.getLogger('AblectorTest')
+
 
 """
 IMPORTANT: Benchmark files in smtlib/ must not contain the exit command!
@@ -24,7 +26,7 @@ def main():
     onlyfiles = [os.path.join(folderName, f) for f in os.listdir(folderName) if os.path.isfile(os.path.join(folderName, f)) and f.endswith(".smt2")]
     for filePath in onlyfiles:
         with open(filePath, "r") as f:
-            print(filePath)
+            logger.info(filePath)
             reset_env()
             parser = SmtLibParser()
             parser._reset()
@@ -46,7 +48,7 @@ def main():
                     for line in content:
                         if line.startswith(";ASSERT "):
                             varName = line[8:].strip()
-                            print(varName+": "+a.btor.Match_by_symbol(varName).assignment)
+                            logger.info(varName+": "+a.btor.Match_by_symbol(varName).assignment)
                             newScriptSrc+="(assert (= "+varName+" #b"+a.btor.Match_by_symbol(varName).assignment+"))\n"
                         else:
                             newScriptSrc+=line
@@ -54,10 +56,10 @@ def main():
                     scriptWithValues = parser.get_script(io.StringIO(newScriptSrc))
                     scriptWithValues.evaluate(b)
                     assert(b.last_result)
-                print("SAT")
+                logger.info("SAT")
             else:
                 assert(status=="unsat")
-                print("UNSAT")
+                logger.info("UNSAT")
 
 if __name__ == "__main__":
     main()
