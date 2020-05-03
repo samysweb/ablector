@@ -4,7 +4,7 @@ import time
 from pyboolector import Boolector
 from pyboolector import BTOR_OPT_INCREMENTAL, BTOR_OPT_MODEL_GEN
 
-from ablector.src.nodes import MulNode, SdivNode, SremNode
+from ablector.src.nodes import MulNode, SdivNode, SremNode, UdivNode
 from ablector.src.UFManager import UFManager
 from ablector.src.util import Bin2Int
 
@@ -91,6 +91,15 @@ class Ablector(Boolector):
         if normal:
             return super().Sdiv(a, b)
         node = SdivNode(a, b, self, self.ufManager)
+        self.abstractedNodes.append(node)
+        self.ablectorTime+=(time.clock()-t)
+        return node.getRepr()
+    
+    def Udiv(self, a, b, normal=False):
+        t = time.clock()
+        if normal:
+            return super().Udiv(a, b)
+        node = UdivNode(a, b, self, self.ufManager)
         self.abstractedNodes.append(node)
         self.ablectorTime+=(time.clock()-t)
         return node.getRepr()

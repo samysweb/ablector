@@ -10,6 +10,8 @@ class UFSymbol(Enum):
     SDIV = 3
     UDIV = 4
     SREM = 5
+    UREM = 6
+    SMOD = 7
 
 class UFManager:
     def __init__(self, instanceParam, configParam=None):
