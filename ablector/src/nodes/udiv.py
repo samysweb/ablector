@@ -52,7 +52,15 @@ class UdivNode(BinaryOperation):
     def refinement1(self):
         _zero = self.instance.Const(0, self.a.width)
         _one = self.instance.Const(1, self.a.width)
-        self.addAssert(self.instance.Not(self.instance.Eq(self.b, _zero)))
+        _minusOne = self.instance.Const(-1, self.a.width)
+        # b=0 => (a/b)=a
+        self.addAssert(
+            self.instance.Implies(
+                self.instance.Eq(self.b, _zero),
+                self.instance.Eq(self.res, _minusOne)
+            )
+        )
+
         # b=1 => (a/b)=a
         self.addAssert(
             self.instance.Implies(
@@ -63,14 +71,14 @@ class UdivNode(BinaryOperation):
         # b=a => (a/b)=1
         self.addAssert(
             self.instance.Implies(
-                self.instance.Eq(self.b, self.a),
+                self.instance.Eq(self.b, self.a) & self.instance.Not(self.instance.Eq(self.b, _zero)),
                 self.instance.Eq(self.res, _one)
             )
         )
         # a<b => (a/b)=0
         self.addAssert(
             self.instance.Implies(
-                self.instance.Slt(self.a, self.b),
+                self.instance.Ult(self.a, self.b),
                 self.instance.Eq(self.res, _zero)
             )
         )
