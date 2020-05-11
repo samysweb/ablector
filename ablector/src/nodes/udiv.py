@@ -26,7 +26,7 @@ class UdivNode(BinaryOperation):
         self.bDouble = self.instance.Uext(self.b, self.b.width)
 
         self.initStage=True
-        
+
     def isExact(self):
         return UdivNode.MaxRefinements == self.refinementCount
     
@@ -135,10 +135,10 @@ class UdivNode(BinaryOperation):
             )
         self.addAssert(
             (self.instance.Ulte(self.res, upperBound) 
-            & (
-                  self.instance.Ult(lowerBound, self.res)
-                # Must add zero case due to less than (not less than equal)
-                | self.instance.Eq(self.res, self.instance.Const(0, w))))
+            &
+             (
+                   self.instance.Ulte(lowerBound, self.res)
+                 | self.instance.Eq(self.res, self.instance.Const(0, w))))
             | self.instance.Eq(self.b, _zero)
         )
 

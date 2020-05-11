@@ -180,8 +180,7 @@ class SdivNode(BinaryOperation):
         self.addAssert(
             (self.instance.Ulte(self.udivRes, upperBound) 
             & (
-                  self.instance.Ult(lowerBound, self.udivRes)
-                # Must add zero case due to less than (not less than equal)
+                  self.instance.Ulte(lowerBound, self.udivRes)
                 | self.instance.Eq(self.udivRes, self.instance.Const(0, w))))
             | self.instance.Eq(self.b, _zero)
         )
