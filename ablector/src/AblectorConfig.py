@@ -6,6 +6,13 @@ class AblectorConfig:
         self.logLevel = logging.INFO
         self.timeOffset = 0
         self.ufReuseFactor=1
+        self.unsignedOnly=False
+    
+    def setUnsigned(self):
+        self.unsignedOnly=True
+    
+    def getUnsigned(self):
+        return self.unsignedOnly
 
     def setUfReuseFactor(self, factor):
         self.ufReuseFactor = factor

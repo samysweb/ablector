@@ -21,6 +21,7 @@ def parseArgs(args):
     parser.add_argument('-d', dest="debug", action="store_true")
     parser.add_argument('--omit', dest='omitted', action='append', type=str, nargs=1)
     parser.add_argument('--ufReuse', dest="ufReuseFactor", action="store", type=int)
+    parser.add_argument('--unsigned', dest='unsigned', action="store_true")
 
     args = parser.parse_args(args)
     if hasattr(args,"debug"):
@@ -31,8 +32,11 @@ def parseArgs(args):
             parts = curOmitted[0].strip().split(":")
             result.omitStage(parts[0], int(parts[1]))
 
-    if hasattr(args,"ufReuseFactor"):
+    if hasattr(args,"ufReuseFactor") and args.ufReuseFactor is not None:
         result.setUfReuseFactor(args.ufReuseFactor)
+    
+    if args.unsigned:
+        result.setUnsigned()
 
     return result
 

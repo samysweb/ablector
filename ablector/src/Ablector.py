@@ -90,7 +90,54 @@ class Ablector(Boolector):
         t = time.clock()
         if normal:
             return super().Sdiv(a, b)
+        if self.config.getUnsigned():
+            logger.debug("Using unsigned encoding")
+            absA = self.Cond(
+                a[a.width-1],
+                self.Neg(a),
+                a
+            )
+            absB = self.Cond(
+                b[b.width-1],
+                self.Neg(b),
+                b
+            )
+            div = self.Udiv(absA, absB)
+            res = self.Cond(
+                self.Xor(a[a.width-1],b[b.width-1]),
+                self.Neg(div),
+                div
+            )
+            return res
         node = SdivNode(a, b, self, self.ufManager)
+        self.abstractedNodes.append(node)
+        self.ablectorTime+=(time.clock()-t)
+        return node.getRepr()
+    
+    def Srem(self, a, b, normal=False):
+        t = time.clock()
+        if normal:
+            return super().Srem(a, b)
+        if self.config.getUnsigned():
+            logger.debug("Using unsigned encoding")
+            absA = self.Cond(
+                a[a.width-1],
+                self.Neg(a),
+                a
+            )
+            absB = self.Cond(
+                b[b.width-1],
+                self.Neg(b),
+                b
+            )
+            rem = self.Urem(absA, absB)
+            res = self.Cond(
+                a[a.width-1],
+                self.Neg(rem),
+                rem
+            )
+            return res
+        node = SremNode(a, b, self, self.ufManager)
         self.abstractedNodes.append(node)
         self.ablectorTime+=(time.clock()-t)
         return node.getRepr()
@@ -100,15 +147,6 @@ class Ablector(Boolector):
         if normal:
             return super().Udiv(a, b)
         node = UdivNode(a, b, self, self.ufManager)
-        self.abstractedNodes.append(node)
-        self.ablectorTime+=(time.clock()-t)
-        return node.getRepr()
-    
-    def Srem(self, a, b, normal=False):
-        t = time.clock()
-        if normal:
-            return super().Srem(a, b)
-        node = SremNode(a, b, self, self.ufManager)
         self.abstractedNodes.append(node)
         self.ablectorTime+=(time.clock()-t)
         return node.getRepr()
