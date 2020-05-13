@@ -23,15 +23,15 @@ def parseArgs(args):
     parser.add_argument('--ufReuse', dest="ufReuseFactor", action="store", type=int)
 
     args = parser.parse_args(args)
-    if args.debug:
+    if hasattr(args,"debug"):
         result.setDebugLogLevel()
 
-    if args.omitted:
+    if hasattr(args,"omitted") and args.omitted is not None:
         for curOmitted in args.omitted:
             parts = curOmitted[0].strip().split(":")
             result.omitStage(parts[0], int(parts[1]))
 
-    if args.ufReuseFactor:
+    if hasattr(args,"ufReuseFactor"):
         result.setUfReuseFactor(args.ufReuseFactor)
 
     return result
