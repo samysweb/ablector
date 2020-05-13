@@ -24,7 +24,7 @@ def parseArgs(args):
     parser.add_argument('--unsigned', dest='unsigned', action="store_true")
 
     args = parser.parse_args(args)
-    if hasattr(args,"debug"):
+    if hasattr(args,"debug") and args.debug:
         result.setDebugLogLevel()
 
     if hasattr(args,"omitted") and args.omitted is not None:
