@@ -101,6 +101,12 @@ class SdivNode(BinaryOperation):
             self.refinementCount+=1
             self.initStage = False
         else:
+            if self.instance.config.isOmitted('sdiv', 3):
+                self.refinementCount+=1
+                self.addAssert(
+                    self.instance.Eq(self.udivRes, self.instance.Udiv(self.absA, self.absB, normal=True))
+                )
+                return
             self.addLogic()
             self.initStage = False
             if self.refinementCount!=3:

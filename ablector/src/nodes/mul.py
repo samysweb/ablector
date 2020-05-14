@@ -118,6 +118,12 @@ class MulNode(BinaryOperation):
         elif self.refinementCount == 2:
             self.refinementCount+=1
         if self.refinementCount == 3:
+            if self.instance.config.isOmitted('mul', 3):
+                self.refinementCount+=1
+                self.addAssert(
+                    self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
+                )
+                return
             self.addMulBit()
             self.initStage = False
             #f = self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))

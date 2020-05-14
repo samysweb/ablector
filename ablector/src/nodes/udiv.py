@@ -67,6 +67,12 @@ class UdivNode(BinaryOperation):
             self.refinementCount+=1
             self.initStage = False
         else:
+            if self.instance.config.isOmitted('udiv', 3):
+                self.refinementCount+=1
+                self.addAssert(
+                    self.instance.Eq(self.res, self.instance.Udiv(self.a, self.b, normal=True))
+                )
+                return
             self.addLogic()
             self.initStage = False
             if self.refinementCount!=3:
