@@ -7,7 +7,7 @@ from ablector.src.UFManager import UFSymbol
 logger = logging.getLogger('UdivNode')
 
 class UdivNode(BinaryOperation):
-    MaxRefinements = 4
+    MaxRefinements = 3
 
     def __init__(self, aParam, bParam, instanceParam, ufManagerParam):
         super().__init__(
@@ -57,17 +57,11 @@ class UdivNode(BinaryOperation):
                 self.refinementCount+=1
                 return self.refine()
             self.refinement2()
-            self.refinementCount += 1
-            self.initStage = False
-        elif self.refinementCount == 1:
-            if self.instance.config.isOmitted('udiv', 2):
-                self.refinementCount+=1
-                return self.refine()
             self.ufAbstraction()
             self.refinementCount+=1
             self.initStage = False
         else:
-            if self.instance.config.isOmitted('udiv', 3):
+            if self.instance.config.isOmitted('udiv', 2):
                 self.refinementCount+=1
                 self.addAssert(
                     self.instance.Eq(self.res, self.instance.Udiv(self.a, self.b, normal=True))
@@ -75,8 +69,8 @@ class UdivNode(BinaryOperation):
                 return
             self.addLogic()
             self.initStage = False
-            if self.refinementCount!=3:
-                self.refinementCount=3
+            if self.refinementCount!=2:
+                self.refinementCount=2
     
     def refinement1(self):
         _zero = self.instance.Const(0, self.a.width)

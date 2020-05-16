@@ -7,7 +7,7 @@ from ablector.src.UFManager import UFSymbol
 logger = logging.getLogger('MulNode')
 
 class MulNode(BinaryOperation):
-    MaxRefinements = 4
+    MaxRefinements = 3
 
     def __init__(self, aParam, bParam, instanceParam, ufManagerParam):
         super().__init__(
@@ -106,19 +106,13 @@ class MulNode(BinaryOperation):
                 self.refinementCount+=1
                 return self.refine()
             self.refinement2()
-            self.refinementCount+=1
-            self.initStage = False
-        elif self.refinementCount == 1:
-            if self.instance.config.isOmitted('mul', 2):
-                self.refinementCount+=1
-                return self.refine()
             self.setupInitConstraints()
             self.refinementCount+=1
             self.initStage = False
-        elif self.refinementCount == 2:
+        elif self.refinementCount == 1:
             self.refinementCount+=1
-        if self.refinementCount == 3:
-            if self.instance.config.isOmitted('mul', 3):
+        if self.refinementCount == 2:
+            if self.instance.config.isOmitted('mul', 2):
                 self.refinementCount+=1
                 self.addAssert(
                     self.instance.Eq(self.res, self.instance.Mul(self.a, self.b, normal=True))
